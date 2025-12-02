@@ -111,8 +111,7 @@ lib/
     ├── client.ts              # Client-side Supabase
     ├── server.ts              # Server-side Supabase (SSR)
     ├── middleware.ts          # Session & admin route protection
-    ├── schema.sql             # Database schema with RLS
-    └── migrate-to-secure-schema-safe.sql  # Secure schema migration
+    └── schema.sql             # Secure database schema (admin_users + is_admin())
 
 middleware.ts                  # Root middleware
 ```

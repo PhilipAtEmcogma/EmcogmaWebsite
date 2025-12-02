@@ -208,7 +208,7 @@ Before deploying:
 - [ ] Supabase RLS policies are enabled (using secure schema)
 - [ ] `is_admin()` function created in Supabase
 - [ ] `admin_users` table populated with admin emails
-- [ ] Migration to secure schema completed ([migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql))
+- [ ] Secure schema ([lib/supabase/schema.sql](lib/supabase/schema.sql)) executed in Supabase
 - [ ] OAuth providers configured (Google/GitHub) in Supabase Auth
 - [ ] Production secrets set in Vercel dashboard
 - [ ] SSL/TLS enabled (automatic with Vercel)

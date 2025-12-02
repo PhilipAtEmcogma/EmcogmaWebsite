@@ -65,9 +65,13 @@ See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA setup.
 
 1. Create Supabase project
 2. Run SQL from [lib/supabase/schema.sql](lib/supabase/schema.sql) in SQL Editor
-3. **Migrate to secure schema**: Run [lib/supabase/migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql) for enhanced security
+   - This secure schema includes `admin_users` table and `is_admin()` function
+   - No hardcoded emails in RLS policies
+3. Add your admin email to the database:
+   ```sql
+   INSERT INTO admin_users (email) VALUES ('your-email@example.com');
+   ```
 4. Configure OAuth providers (Google/GitHub) in Supabase Authentication
-5. Your email will be automatically added to `admin_users` table
 
 Detailed instructions: [SETUP.md](SETUP.md) | Admin setup: [ADMIN-SETUP.md](ADMIN-SETUP.md)
 
@@ -109,8 +113,7 @@ lib/supabase/
 ├── client.ts                   # Client-side Supabase
 ├── server.ts                   # Server-side (SSR)
 ├── middleware.ts               # Session management
-├── schema.sql                  # Database schema
-└── migrate-to-secure-schema-safe.sql  # Secure schema migration
+└── schema.sql                  # Secure database schema with admin_users table
 ```
 
 ## 🗄️ Database Schema
