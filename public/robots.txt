@@ -1,0 +1,10 @@
+# *
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# Host
+Host: https://emcogma.com
+
+# Sitemaps
+Sitemap: https://emcogma.com/sitemap.xml
