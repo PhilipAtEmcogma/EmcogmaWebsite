@@ -19,7 +19,7 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 ### Technical Highlights
 - **SEO Optimized** - Auto-generated sitemap, robots.txt, Open Graph tags, PWA manifest
 - **Performance** - ISR (60s revalidation), static generation, Next.js Image optimization
-- **Security** - Supabase RLS policies, server-side reCAPTCHA verification, protected routes
+- **Security** - Secure RLS policies with centralized `is_admin()` function, database-driven admin access, server-side reCAPTCHA verification
 - **Responsive** - Mobile-first design, sticky navigation, adaptive layouts
 
 ## 🚀 Quick Start
@@ -65,9 +65,11 @@ See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA setup.
 
 1. Create Supabase project
 2. Run SQL from [lib/supabase/schema.sql](lib/supabase/schema.sql) in SQL Editor
-3. Create admin user in Authentication
+3. **Migrate to secure schema**: Run [lib/supabase/migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql) for enhanced security
+4. Configure OAuth providers (Google/GitHub) in Supabase Authentication
+5. Your email will be automatically added to `admin_users` table
 
-Detailed instructions: [SETUP.md](SETUP.md)
+Detailed instructions: [SETUP.md](SETUP.md) | Admin setup: [ADMIN-SETUP.md](ADMIN-SETUP.md)
 
 ### Run Development Server
 
@@ -107,22 +109,40 @@ lib/supabase/
 ├── client.ts                   # Client-side Supabase
 ├── server.ts                   # Server-side (SSR)
 ├── middleware.ts               # Session management
-└── schema.sql                  # Database schema
+├── schema.sql                  # Database schema
+└── migrate-to-secure-schema-safe.sql  # Secure schema migration
 ```
 
 ## 🗄️ Database Schema
 
 ### Tables
+- **admin_users** - Admin whitelist with email, active status (database-driven admin access)
 - **blog_posts** - Blog content with slug, title, content (markdown), tags, published status
 - **comments** - User comments with post_id FK, author, content, approved flag
 - **projects** - Portfolio items with tech stack, category, featured status
+- **articles** - Additional content with categories and featured status
+- **products** - SaaS products with pricing, features, and documentation links
+- **demos** - Interactive demos and code samples
 - **subscribers** - Newsletter email list
-- **contact_submissions** - Contact form data (schema ready)
+- **contact_submissions** - Contact form data
 
-### Row-Level Security
-- Public read for published content
-- Admin-only writes (checked via `ADMIN_EMAIL`)
+### Row-Level Security (Secure Schema)
+- **Centralized Admin Function**: `is_admin()` function checks `admin_users` table
+- **No Hardcoded Emails**: All policies use `is_admin()` for admin checks
+- **Easy Admin Management**: Add/remove admins via SQL without schema changes
+- Public read for published/active content
+- Admin-only writes via centralized function
 - Comment moderation (`approved = false` by default)
+
+**Add new admin:**
+```sql
+INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+```
+
+**Remove admin:**
+```sql
+UPDATE admin_users SET active = false WHERE email = 'admin@example.com';
+```
 
 ## 🎨 Cyberpunk Theme
 
@@ -183,11 +203,14 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## 🔐 Security
 
-- **Row-Level Security** - All Supabase tables protected
+- **Secure RLS Policies** - Centralized `is_admin()` function for all admin checks
+- **Database-driven Admin Access** - `admin_users` table eliminates hardcoded emails
+- **Row-Level Security** - All Supabase tables protected with RLS
 - **Server-side Verification** - reCAPTCHA tokens verified server-side only
 - **Environment Variables** - Secrets never exposed to client
 - **HTTPS** - Enforced in production (automatic with Vercel)
 - **Input Validation** - All forms validated client + server
+- **Easy Admin Management** - Add/remove admins via SQL without code/schema changes
 
 See [SECURITY.md](SECURITY.md) for security best practices.
 
@@ -256,9 +279,10 @@ Submit contact form with reCAPTCHA verification.
 - [x] Responsive design
 
 ### 🔄 In Progress / Planned
-- [ ] Admin authentication with Supabase Auth
-- [ ] Admin CRUD interfaces
-- [ ] Newsletter subscriber management
+- [x] Admin authentication with Supabase Auth (OAuth with Google/GitHub)
+- [x] Admin CRUD interfaces (Blog, Projects, Articles, Products, Demos)
+- [x] Secure schema with `is_admin()` function and `admin_users` table
+- [ ] Newsletter subscriber management UI
 - [ ] Search functionality
 - [ ] Pagination for blog/portfolio
 - [ ] Email sending (newsletters)
@@ -268,6 +292,7 @@ Submit contact form with reCAPTCHA verification.
 
 - [CLAUDE.md](CLAUDE.md) - AI context & implementation status
 - [SETUP.md](SETUP.md) - Detailed setup instructions
+- [ADMIN-SETUP.md](ADMIN-SETUP.md) - Admin portal setup and usage
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 - [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) - reCAPTCHA configuration
 - [SECURITY.md](SECURITY.md) - Security best practices

@@ -117,27 +117,72 @@ ADMIN_EMAIL=your-admin-email@example.com
 
 ## 🔐 Authentication & Authorization
 
-### Row Level Security (RLS)
+### Row Level Security (RLS) - Secure Schema
 
-All Supabase tables use RLS policies:
+All Supabase tables use **secure RLS policies** with centralized admin checking:
 
-- **Public read** for published content
-- **Authenticated users only** for admin operations
-- **Email-based admin check** via `auth.jwt() ->> 'email'`
+#### Centralized Admin Function
+```sql
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE email = auth.jwt() ->> 'email'
+    AND active = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+#### Benefits of Secure Schema
+- **No Hardcoded Emails**: All RLS policies use `is_admin()` function instead of hardcoded email checks
+- **Database-driven Access**: Admin access controlled via `admin_users` table
+- **Easy Admin Management**: Add/remove admins via SQL without schema changes or code deployment
+- **Centralized Logic**: Single source of truth for admin verification
+
+#### RLS Policy Structure
+- **Public read** for published/active content (e.g., `published = true`, `active = true`)
+- **Admin-only writes** via `is_admin()` function check
+- **Comment moderation**: Public can insert, admin can approve/edit/delete
 
 ### Admin Access
 
-Admin routes (`/admin`) are protected by:
+Admin routes (`/admin`) are protected by multiple layers:
 
-1. Supabase Authentication
-2. Middleware checking user session
-3. Row Level Security on database operations
+1. **OAuth Authentication** (Google/GitHub via Supabase Auth)
+2. **Middleware** checking user session
+3. **Database Check** via `admin_users` table
+4. **Row Level Security** on all database operations using `is_admin()`
+
+### Admin Management
+
+#### Add New Admin
+```sql
+INSERT INTO admin_users (email)
+VALUES ('new-admin@example.com');
+```
+
+#### Remove/Deactivate Admin
+```sql
+UPDATE admin_users
+SET active = false
+WHERE email = 'admin@example.com';
+```
+
+#### View All Admins
+```sql
+SELECT email, active, created_at
+FROM admin_users
+ORDER BY created_at DESC;
+```
 
 ### API Security
 
-- Public routes: Read-only, published content
-- Protected routes: Require authentication
-- Service role key: Never exposed to client
+- **Public routes**: Read-only, published content
+- **Protected routes**: Require authentication + `is_admin()` check
+- **Service role key**: Never exposed to client
+- **RLS enforcement**: All queries subject to row-level security
 
 ## 🚨 Security Headers
 
@@ -160,8 +205,11 @@ Before deploying:
 - [ ] No `.env` files committed to repository
 - [ ] All secrets use environment variables
 - [ ] `.env.example` has placeholder values only
-- [ ] Supabase RLS policies are enabled
-- [ ] Admin email is set in environment variables
+- [ ] Supabase RLS policies are enabled (using secure schema)
+- [ ] `is_admin()` function created in Supabase
+- [ ] `admin_users` table populated with admin emails
+- [ ] Migration to secure schema completed ([migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql))
+- [ ] OAuth providers configured (Google/GitHub) in Supabase Auth
 - [ ] Production secrets set in Vercel dashboard
 - [ ] SSL/TLS enabled (automatic with Vercel)
 - [ ] Security headers configured
