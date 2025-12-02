@@ -119,7 +119,7 @@ middleware.ts                  # Root middleware
 
 ## Database Schema
 
-**admin_users:** id, email (unique), active, timestamps - Controls admin access via database
+**admin_users:** id, email (unique, lowercase, validated), active, timestamps, created_by, deactivated_at, deactivated_by, notes - Controls admin access via database with full audit trail
 **blog_posts:** id, slug (unique), title, excerpt, content (markdown), author, read_time, tags[], published, timestamps
 **comments:** id, post_slug (FK), author_name, author_email, content, approved (moderation), created_at
 **projects:** id, slug, title, description, long_description, tech[], category, image_url, live_url, github_url, featured, display_order, timestamps
@@ -226,15 +226,28 @@ Access: `/admin` (requires OAuth login with admin email in database)
 - Real-time updates with Supabase
 
 **Admin Management:**
-To add a new admin, run in Supabase SQL Editor:
+To add a new admin with audit trail, run in Supabase SQL Editor:
 ```sql
-INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+INSERT INTO admin_users (email, created_by, notes)
+VALUES ('new-admin@example.com', 'admin@example.com', 'Added for project management');
 ```
 
-To remove an admin:
+To remove an admin (soft delete with audit trail):
 ```sql
-UPDATE admin_users SET active = false WHERE email = 'admin@example.com';
+UPDATE admin_users
+SET active = false,
+    deactivated_at = NOW(),
+    deactivated_by = 'admin@example.com',
+    notes = 'Access no longer needed'
+WHERE email = 'admin@example.com';
 ```
+
+**Security Features:**
+- Email format validation (regex constraint)
+- Lowercase enforcement for consistent email handling
+- Audit trail for all admin changes (created_by, deactivated_at, deactivated_by, notes)
+- Hard deletion prevented by RLS policy (soft delete only)
+- Composite indexes for optimal `is_admin()` performance
 
 See [ADMIN-SETUP.md](ADMIN-SETUP.md) for detailed setup and usage guide.
 

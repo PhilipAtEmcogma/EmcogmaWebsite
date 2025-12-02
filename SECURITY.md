@@ -159,23 +159,40 @@ Admin routes (`/admin`) are protected by multiple layers:
 
 #### Add New Admin
 ```sql
-INSERT INTO admin_users (email)
-VALUES ('new-admin@example.com');
+INSERT INTO admin_users (email, created_by, notes)
+VALUES ('new-admin@example.com', 'admin@example.com', 'Added for project management');
 ```
 
-#### Remove/Deactivate Admin
+**Note:** Email must be lowercase (enforced by constraint) and match email format validation.
+
+#### Remove/Deactivate Admin (Soft Delete)
 ```sql
 UPDATE admin_users
-SET active = false
+SET active = false,
+    deactivated_at = NOW(),
+    deactivated_by = 'admin@example.com',
+    notes = 'Access no longer required'
 WHERE email = 'admin@example.com';
 ```
 
-#### View All Admins
+**Important:** Hard deletion of admin records is prevented by RLS policy to maintain audit trail.
+
+#### View All Admins with Audit Trail
 ```sql
-SELECT email, active, created_at
+SELECT email, active, created_at, created_by,
+       deactivated_at, deactivated_by, notes
 FROM admin_users
 ORDER BY created_at DESC;
 ```
+
+#### Audit Trail Features
+The `admin_users` table includes comprehensive audit tracking:
+- **created_by**: Email of admin who added this user
+- **deactivated_at**: Timestamp when admin was deactivated
+- **deactivated_by**: Email of admin who deactivated this user
+- **notes**: Context about why admin was added/removed
+
+This provides full accountability for admin access changes.
 
 ### API Security
 
@@ -197,6 +214,37 @@ Configured in `vercel.json`:
 }
 ```
 
+## 🔒 Input Validation & Constraints
+
+### Email Validation
+All admin emails are validated with multiple layers of security:
+
+**Format Validation:**
+```sql
+-- Enforced by database constraint
+CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
+```
+
+**Case Normalization:**
+```sql
+-- All emails must be lowercase
+CHECK (email = LOWER(email))
+```
+
+**Benefits:**
+- Prevents invalid email formats
+- Ensures consistent email casing
+- Reduces case-sensitivity bugs
+- Improves index performance
+
+### Performance Optimization
+The secure schema includes optimized indexes:
+- Single column index on `email` for fast lookups
+- Single column index on `active` for filtering
+- **Composite index** on `(LOWER(email), active)` for optimal `is_admin()` performance
+
+This ensures admin authentication remains fast even as the admin list grows.
+
 ## 📋 Security Checklist
 
 Before deploying:
@@ -209,11 +257,16 @@ Before deploying:
 - [ ] `is_admin()` function created in Supabase
 - [ ] `admin_users` table populated with admin emails
 - [ ] Migration to secure schema completed ([migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql))
+- [ ] Email validation constraints in place (format + lowercase)
+- [ ] Audit trail columns added to admin_users
+- [ ] Soft delete enforcement enabled (no hard deletes)
+- [ ] Composite indexes created for performance
 - [ ] OAuth providers configured (Google/GitHub) in Supabase Auth
 - [ ] Production secrets set in Vercel dashboard
 - [ ] SSL/TLS enabled (automatic with Vercel)
 - [ ] Security headers configured
 - [ ] Dependencies audited (`npm audit`)
+- [ ] RLS policies tested (see ADMIN-SETUP.md Testing section)
 
 ## 🔍 Regular Security Audits
 

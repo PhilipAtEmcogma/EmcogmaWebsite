@@ -1,6 +1,29 @@
 -- Safe Migration Script: From schema.sql to schema-secure.sql
 -- This version checks if tables exist before dropping policies
 -- Run this in Supabase SQL Editor
+--
+-- ============================================================================
+-- IMPORTANT: MIGRATION REQUIREMENTS
+-- ============================================================================
+-- This migration MUST be run with superuser or service role privileges because:
+-- 1. The is_admin() function uses SECURITY DEFINER to bypass RLS
+-- 2. RLS policies on admin_users table create circular dependency
+-- 3. The function owner needs sufficient privileges to query admin_users without RLS
+--
+-- To run this migration:
+-- 1. Open Supabase SQL Editor
+-- 2. Ensure you're logged in as the project owner or service role
+-- 3. Copy and paste this entire script
+-- 4. Execute the script
+-- 5. Verify the first admin was added: SELECT * FROM admin_users;
+--
+-- After migration, to add more admins:
+-- INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+--
+-- To remove an admin (soft delete):
+-- UPDATE admin_users SET active = false, deactivated_at = NOW(),
+--   deactivated_by = 'reason' WHERE email = 'admin@example.com';
+-- ============================================================================
 
 -- ============================================================================
 -- STEP 1: Create any missing tables first
@@ -96,6 +119,7 @@ DROP POLICY IF EXISTS "Admin can moderate comments" ON comments;
 -- Drop subscribers policies
 DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
 DROP POLICY IF EXISTS "Admin can view subscribers" ON subscribers;
+DROP POLICY IF EXISTS "Admin can manage subscribers" ON subscribers;
 
 -- Drop projects policies
 DROP POLICY IF EXISTS "Public can view projects" ON projects;
@@ -104,6 +128,7 @@ DROP POLICY IF EXISTS "Admin can manage projects" ON projects;
 -- Drop contact_submissions policies
 DROP POLICY IF EXISTS "Anyone can submit contact form" ON contact_submissions;
 DROP POLICY IF EXISTS "Admin can view submissions" ON contact_submissions;
+DROP POLICY IF EXISTS "Admin can manage submissions" ON contact_submissions;
 
 -- Drop articles policies
 DROP POLICY IF EXISTS "Public can view published articles" ON articles;
@@ -126,12 +151,27 @@ CREATE TABLE IF NOT EXISTS admin_users (
   email TEXT UNIQUE NOT NULL,
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_by TEXT,
+  deactivated_at TIMESTAMPTZ,
+  deactivated_by TEXT,
+  notes TEXT
 );
+
+-- Add email validation and case normalization constraints
+ALTER TABLE admin_users
+  ADD CONSTRAINT IF NOT EXISTS email_format
+  CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$');
+
+ALTER TABLE admin_users
+  ADD CONSTRAINT IF NOT EXISTS email_lowercase
+  CHECK (email = LOWER(email));
 
 -- Create indexes for admin_users
 CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
 CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(active);
+-- Composite index for better query performance
+CREATE INDEX IF NOT EXISTS idx_admin_users_email_active ON admin_users(LOWER(email), active);
 
 -- ============================================================================
 -- STEP 4: Create is_admin() helper function
@@ -161,8 +201,15 @@ ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Only admins can view admin users" ON admin_users
   FOR SELECT USING (is_admin());
 
-CREATE POLICY "Only admins can manage admin users" ON admin_users
-  FOR ALL USING (is_admin());
+CREATE POLICY "Only admins can insert/update admin users" ON admin_users
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Only admins can update admin users" ON admin_users
+  FOR UPDATE USING (is_admin());
+
+-- Prevent hard deletion of admin records (use active = false instead)
+CREATE POLICY "Prevent admin deletion" ON admin_users
+  FOR DELETE USING (false);
 
 -- Blog posts policies
 CREATE POLICY "Public can view published posts" ON blog_posts
@@ -185,8 +232,8 @@ CREATE POLICY "Admin can moderate comments" ON comments
 CREATE POLICY "Anyone can subscribe" ON subscribers
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Admin can view subscribers" ON subscribers
-  FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can manage subscribers" ON subscribers
+  FOR ALL USING (is_admin());
 
 -- Projects policies
 CREATE POLICY "Public can view projects" ON projects
@@ -199,8 +246,8 @@ CREATE POLICY "Admin can manage projects" ON projects
 CREATE POLICY "Anyone can submit contact form" ON contact_submissions
   FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Admin can view submissions" ON contact_submissions
-  FOR SELECT USING (is_admin());
+CREATE POLICY "Admin can manage submissions" ON contact_submissions
+  FOR ALL USING (is_admin());
 
 -- Articles policies
 CREATE POLICY "Public can view published articles" ON articles
@@ -270,4 +317,30 @@ ON CONFLICT (email) DO NOTHING;
 -- ✅ admin_users table for managing admin access
 -- ✅ No hardcoded emails in RLS policies
 -- ✅ Easy to add/remove admins without schema changes
+-- ✅ Audit trail columns for tracking admin changes
+-- ✅ Email validation and case normalization
+-- ✅ Composite indexes for better performance
+-- ✅ Soft delete enforcement on admin_users
+-- ============================================================================
+
+-- ============================================================================
+-- ROLLBACK PROCEDURE (if migration fails or needs to be reverted)
+-- ============================================================================
+-- WARNING: Only run this if you need to revert to the old schema
+-- This will remove the secure schema and restore hardcoded email policies
+--
+-- STEP 1: Drop secure schema components
+-- DROP FUNCTION IF EXISTS is_admin() CASCADE;
+-- DROP TABLE IF EXISTS admin_users CASCADE;
+--
+-- STEP 2: Recreate old policies with hardcoded email
+-- Example for blog_posts (repeat for other tables):
+-- CREATE POLICY "Admin can manage posts" ON blog_posts
+--   FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+--
+-- STEP 3: Verify old policies work
+-- Test admin operations with the hardcoded email
+--
+-- NOTE: After rollback, you'll need to update RLS policies manually
+-- whenever you want to add/remove admin users
 -- ============================================================================
