@@ -42,19 +42,42 @@ See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA configuratio
 
 ### 3. Set Up Supabase Database
 
+#### 3.1 Initial Schema (if new project)
+
 1. Go to your Supabase project dashboard
 2. Navigate to the SQL Editor
 3. Copy the contents of `lib/supabase/schema.sql`
 4. Run the SQL to create tables and set up Row Level Security
 
-### 4. Create Admin User
+#### 3.2 Migrate to Secure Schema (RECOMMENDED)
+
+For enhanced security with database-driven admin management:
+
+1. Navigate to the SQL Editor in Supabase
+2. Copy the contents of `lib/supabase/migrate-to-secure-schema-safe.sql`
+3. Run the migration script (confirm when prompted about destructive operations)
+
+This migration:
+- Creates `admin_users` table for database-driven admin access
+- Creates `is_admin()` function for centralized admin checking
+- Removes hardcoded emails from RLS policies
+- Adds your admin email to the database
+
+**Benefits:**
+- ✅ No hardcoded emails in RLS policies
+- ✅ Add/remove admins via SQL without code changes
+- ✅ Centralized admin verification logic
+
+### 4. Configure OAuth Providers
 
 In your Supabase dashboard:
 
-1. Go to Authentication > Users
-2. Click "Invite User"
-3. Use the email you specified in `ADMIN_EMAIL`
-4. Complete the signup process
+1. Go to Authentication > Providers
+2. Enable **Google OAuth** and/or **GitHub OAuth**
+3. Configure redirect URLs (see [ADMIN-SETUP.md](ADMIN-SETUP.md) for details)
+4. Set Site URL to your development and production URLs
+
+Your admin email (`emcogma@gmail.com`) is automatically added to the `admin_users` table by the migration script.
 
 ### 5. Run Development Server
 
@@ -121,16 +144,23 @@ colors: {
 ### Content
 
 - **Blog Posts**:
-  - Add via Supabase Table Editor → `blog_posts`
-  - Or via Admin Dashboard (once authentication is implemented)
+  - Add via Admin Dashboard at `/admin` (OAuth authentication required)
+  - Or manually via Supabase Table Editor → `blog_posts`
   - Posts appear automatically on blog listing and detail pages
 - **Portfolio Projects**:
-  - Add via Supabase Table Editor → `projects`
+  - Add via Admin Dashboard at `/admin`
+  - Or manually via Supabase Table Editor → `projects`
   - Set `featured = true` for featured section
+- **Articles, Products, Demos**:
+  - Manage via Admin Dashboard at `/admin`
+  - Full CRUD interface with tabbed navigation
 - **Comments**:
   - Users submit via blog post comment forms
-  - Approve via Supabase Table Editor → set `approved = true`
+  - Moderate via Admin Dashboard (approve, edit, delete)
+  - Or manually via Supabase Table Editor → set `approved = true`
 - **Home Page**: Edit `components/home/*` components
+
+See [ADMIN-SETUP.md](ADMIN-SETUP.md) for complete admin portal documentation.
 
 ## Deployment
 
@@ -160,13 +190,24 @@ In your Vercel project settings, add:
 
 ## Supabase Configuration
 
-### Row Level Security (RLS)
+### Row Level Security (RLS) - Secure Schema
 
-The schema includes RLS policies that:
+The secure schema includes RLS policies that:
 
-- Allow public read access to published content
-- Restrict admin operations to authenticated admin user
-- Allow anyone to submit comments (moderation required)
+- **Centralized Admin Check**: Uses `is_admin()` function to verify admin access via `admin_users` table
+- **No Hardcoded Emails**: All policies use the centralized function instead of hardcoded email checks
+- **Public Read Access**: Published/active content is publicly readable
+- **Admin-Only Writes**: Only verified admins can insert/update/delete content
+- **Comment Moderation**: Anyone can submit comments, but approval is required
+
+**Managing Admins:**
+```sql
+-- Add new admin
+INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+
+-- Remove admin
+UPDATE admin_users SET active = false WHERE email = 'admin@example.com';
+```
 
 ### Real-time Subscriptions (Optional)
 
@@ -190,10 +231,14 @@ Sitemap is automatically generated at `/sitemap.xml` after build.
 
 ## Security
 
-- Row Level Security enabled on all Supabase tables
-- Admin routes protected by authentication
-- Security headers configured in `vercel.json`
-- Environment variables for sensitive data
+- **Secure RLS Policies**: Centralized `is_admin()` function for all admin checks
+- **Database-driven Admin Access**: `admin_users` table eliminates hardcoded emails
+- **OAuth Authentication**: Google/GitHub sign-in for admin portal
+- **Protected Routes**: Admin routes secured by middleware and session checks
+- **Security Headers**: Configured in `vercel.json`
+- **Environment Variables**: All secrets stored securely
+
+See [SECURITY.md](SECURITY.md) for comprehensive security documentation.
 
 ## Performance
 

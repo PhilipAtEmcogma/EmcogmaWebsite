@@ -32,8 +32,9 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Social sharing (Twitter, LinkedIn, Copy Link)
 
 **Infrastructure:**
-- Supabase: PostgreSQL with RLS policies, server/client setup
+- Supabase: PostgreSQL with secure RLS policies using `is_admin()` function
 - Supabase Auth with OAuth providers (Google, GitHub)
+- Database-driven admin management via `admin_users` table
 - ISR for performance optimization
 - Static params generation for blog posts
 - Middleware for session management and admin authorization
@@ -110,13 +111,15 @@ lib/
     ├── client.ts              # Client-side Supabase
     ├── server.ts              # Server-side Supabase (SSR)
     ├── middleware.ts          # Session & admin route protection
-    └── schema.sql             # Database schema with RLS
+    ├── schema.sql             # Database schema with RLS
+    └── migrate-to-secure-schema-safe.sql  # Secure schema migration
 
 middleware.ts                  # Root middleware
 ```
 
 ## Database Schema
 
+**admin_users:** id, email (unique), active, timestamps - Controls admin access via database
 **blog_posts:** id, slug (unique), title, excerpt, content (markdown), author, read_time, tags[], published, timestamps
 **comments:** id, post_slug (FK), author_name, author_email, content, approved (moderation), created_at
 **projects:** id, slug, title, description, long_description, tech[], category, image_url, live_url, github_url, featured, display_order, timestamps
@@ -126,7 +129,7 @@ middleware.ts                  # Root middleware
 **subscribers:** id, email (unique), subscribed, created_at
 **contact_submissions:** id, name, email, subject, message, read, created_at
 
-**RLS Policies:** Public read for published/active content, admin-only writes (admin email: emcogma@gmail.com), comment moderation
+**RLS Policies:** Secure policies using `is_admin()` function that checks `admin_users` table. No hardcoded emails in policies. Public read for published/active content, admin-only writes via centralized function.
 
 ## API Endpoints
 
@@ -163,7 +166,9 @@ Forwards to Formspree after verification
 - next/image for optimized images
 
 **Security:**
-- RLS policies on all Supabase tables
+- Secure RLS policies using centralized `is_admin()` function
+- Database-driven admin access via `admin_users` table
+- No hardcoded emails in RLS policies for easy admin management
 - Server-side reCAPTCHA verification
 - Environment variables for secrets
 - Input validation on forms
@@ -209,14 +214,27 @@ npm run lint            # ESLint
 
 ## Admin Portal
 
-Access: `/admin` (requires OAuth login with whitelisted admin email)
+Access: `/admin` (requires OAuth login with admin email in database)
 
 **Features:**
 - OAuth authentication (Google/GitHub)
-- Email whitelist: `emcogma@gmail.com`
+- Database-driven admin whitelist via `admin_users` table
+- Current admin: `emcogma@gmail.com` (stored in database)
+- Add/remove admins via SQL without schema changes
 - Full CRUD for: Blog Posts, Projects, Articles, Products, Demos
 - Comment moderation: Approve, edit, delete
 - Real-time updates with Supabase
+
+**Admin Management:**
+To add a new admin, run in Supabase SQL Editor:
+```sql
+INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+```
+
+To remove an admin:
+```sql
+UPDATE admin_users SET active = false WHERE email = 'admin@example.com';
+```
 
 See [ADMIN-SETUP.md](ADMIN-SETUP.md) for detailed setup and usage guide.
 

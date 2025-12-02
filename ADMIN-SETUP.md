@@ -53,25 +53,48 @@ In Supabase dashboard:
   - `http://localhost:3000/admin`
   - `https://yourdomain.com/admin`
 
-## Step 2: Update Database Schema
+## Step 2: Database Setup
 
-Run the updated schema in your Supabase SQL editor:
+### 2.1 Initial Schema (if new project)
+
+Run the initial schema in your Supabase SQL editor:
 
 ```bash
 # The schema is in: lib/supabase/schema.sql
 ```
 
-This creates:
+### 2.2 Migrate to Secure Schema (RECOMMENDED)
+
+**Run the secure migration script** for enhanced security with database-driven admin management:
+
+```bash
+# The migration script is in: lib/supabase/migrate-to-secure-schema-safe.sql
+```
+
+This migration:
+1. Creates missing tables (articles, products, demos) if they don't exist
+2. Creates `admin_users` table for database-driven admin access
+3. Creates `is_admin()` function for centralized admin checking
+4. Drops old RLS policies with hardcoded emails
+5. Creates new secure RLS policies using `is_admin()` function
+6. Automatically adds `emcogma@gmail.com` to `admin_users` table
+
+**Benefits of Secure Schema:**
+- ✅ No hardcoded emails in RLS policies
+- ✅ Easy admin management via SQL (no schema changes needed)
+- ✅ Centralized admin verification logic
+- ✅ Add/remove admins instantly without code deployment
+
+**Tables Created:**
+- `admin_users` table (NEW - stores admin emails)
 - `blog_posts` table
 - `projects` table
 - `comments` table
-- `articles` table (NEW)
-- `products` table (NEW)
-- `demos` table (NEW)
+- `articles` table
+- `products` table
+- `demos` table
 - `subscribers` table
 - `contact_submissions` table
-
-All tables include proper RLS policies that check for admin email: `emcogma@gmail.com`
 
 ## Step 3: Verify Environment Variables
 
@@ -157,18 +180,58 @@ The admin portal has 6 main tabs:
 ### Authentication
 - OAuth-only authentication (Google/GitHub)
 - No password-based login for enhanced security
-- Email whitelist validation
+- Database-driven admin whitelist via `admin_users` table
 
 ### Authorization
-- Middleware checks user email against `ADMIN_EMAIL`
+- Middleware checks user session
+- `is_admin()` function verifies email against `admin_users` table
 - Non-admin users redirected to login with error
 - RLS policies enforce database-level security
 
-### Row-Level Security (RLS)
-All tables have RLS policies:
-- Public can read published content
-- Only admin email can insert/update/delete
+### Row-Level Security (RLS) - Secure Schema
+All tables use **secure RLS policies** with centralized admin checking:
+
+**Centralized Admin Function:**
+```sql
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE email = auth.jwt() ->> 'email'
+    AND active = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+**Policy Structure:**
+- Public can read published/active content
+- Only verified admins (via `is_admin()`) can insert/update/delete
 - Comments require approval before public visibility
+- No hardcoded emails in policies
+
+### Managing Admins
+
+**Add New Admin:**
+```sql
+INSERT INTO admin_users (email)
+VALUES ('new-admin@example.com');
+```
+
+**Remove/Deactivate Admin:**
+```sql
+UPDATE admin_users
+SET active = false
+WHERE email = 'admin@example.com';
+```
+
+**List All Admins:**
+```sql
+SELECT email, active, created_at
+FROM admin_users
+ORDER BY created_at DESC;
+```
 
 ## File Structure
 
@@ -201,7 +264,16 @@ middleware.ts              # Root middleware
 ## Common Issues & Solutions
 
 ### Issue: "Unauthorized" error after login
-**Solution**: Ensure you're logging in with the exact email specified in `ADMIN_EMAIL` environment variable.
+**Solution**:
+1. Verify your email is in the `admin_users` table:
+   ```sql
+   SELECT * FROM admin_users WHERE email = 'your-email@example.com';
+   ```
+2. If missing, add your email:
+   ```sql
+   INSERT INTO admin_users (email) VALUES ('your-email@example.com');
+   ```
+3. Ensure the `active` column is `true`
 
 ### Issue: Can't see content in admin
 **Solution**: Check browser console for errors. Verify Supabase connection and RLS policies are correctly set up.
@@ -215,8 +287,13 @@ middleware.ts              # Root middleware
 ### Issue: Changes not saving
 **Solution**:
 1. Check browser console for errors
-2. Verify RLS policies allow admin email to write
-3. Check database connection
+2. Verify your email is active in `admin_users` table
+3. Test `is_admin()` function:
+   ```sql
+   SELECT is_admin();
+   ```
+   Should return `true` when logged in as admin
+4. Check database connection
 
 ## Database Schema Reference
 
