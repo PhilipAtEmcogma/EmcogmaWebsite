@@ -117,27 +117,89 @@ ADMIN_EMAIL=your-admin-email@example.com
 
 ## 🔐 Authentication & Authorization
 
-### Row Level Security (RLS)
+### Row Level Security (RLS) - Secure Schema
 
-All Supabase tables use RLS policies:
+All Supabase tables use **secure RLS policies** with centralized admin checking:
 
-- **Public read** for published content
-- **Authenticated users only** for admin operations
-- **Email-based admin check** via `auth.jwt() ->> 'email'`
+#### Centralized Admin Function
+```sql
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE email = auth.jwt() ->> 'email'
+    AND active = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+#### Benefits of Secure Schema
+- **No Hardcoded Emails**: All RLS policies use `is_admin()` function instead of hardcoded email checks
+- **Database-driven Access**: Admin access controlled via `admin_users` table
+- **Easy Admin Management**: Add/remove admins via SQL without schema changes or code deployment
+- **Centralized Logic**: Single source of truth for admin verification
+
+#### RLS Policy Structure
+- **Public read** for published/active content (e.g., `published = true`, `active = true`)
+- **Admin-only writes** via `is_admin()` function check
+- **Comment moderation**: Public can insert, admin can approve/edit/delete
 
 ### Admin Access
 
-Admin routes (`/admin`) are protected by:
+Admin routes (`/admin`) are protected by multiple layers:
 
-1. Supabase Authentication
-2. Middleware checking user session
-3. Row Level Security on database operations
+1. **OAuth Authentication** (Google/GitHub via Supabase Auth)
+2. **Middleware** checking user session
+3. **Database Check** via `admin_users` table
+4. **Row Level Security** on all database operations using `is_admin()`
+
+### Admin Management
+
+#### Add New Admin
+```sql
+INSERT INTO admin_users (email, created_by, notes)
+VALUES ('new-admin@example.com', 'admin@example.com', 'Added for project management');
+```
+
+**Note:** Email must be lowercase (enforced by constraint) and match email format validation.
+
+#### Remove/Deactivate Admin (Soft Delete)
+```sql
+UPDATE admin_users
+SET active = false,
+    deactivated_at = NOW(),
+    deactivated_by = 'admin@example.com',
+    notes = 'Access no longer required'
+WHERE email = 'admin@example.com';
+```
+
+**Important:** Hard deletion of admin records is prevented by RLS policy to maintain audit trail.
+
+#### View All Admins with Audit Trail
+```sql
+SELECT email, active, created_at, created_by,
+       deactivated_at, deactivated_by, notes
+FROM admin_users
+ORDER BY created_at DESC;
+```
+
+#### Audit Trail Features
+The `admin_users` table includes comprehensive audit tracking:
+- **created_by**: Email of admin who added this user
+- **deactivated_at**: Timestamp when admin was deactivated
+- **deactivated_by**: Email of admin who deactivated this user
+- **notes**: Context about why admin was added/removed
+
+This provides full accountability for admin access changes.
 
 ### API Security
 
-- Public routes: Read-only, published content
-- Protected routes: Require authentication
-- Service role key: Never exposed to client
+- **Public routes**: Read-only, published content
+- **Protected routes**: Require authentication + `is_admin()` check
+- **Service role key**: Never exposed to client
+- **RLS enforcement**: All queries subject to row-level security
 
 ## 🚨 Security Headers
 
@@ -152,6 +214,37 @@ Configured in `vercel.json`:
 }
 ```
 
+## 🔒 Input Validation & Constraints
+
+### Email Validation
+All admin emails are validated with multiple layers of security:
+
+**Format Validation:**
+```sql
+-- Enforced by database constraint
+CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}$')
+```
+
+**Case Normalization:**
+```sql
+-- All emails must be lowercase
+CHECK (email = LOWER(email))
+```
+
+**Benefits:**
+- Prevents invalid email formats
+- Ensures consistent email casing
+- Reduces case-sensitivity bugs
+- Improves index performance
+
+### Performance Optimization
+The secure schema includes optimized indexes:
+- Single column index on `email` for fast lookups
+- Single column index on `active` for filtering
+- **Composite index** on `(LOWER(email), active)` for optimal `is_admin()` performance
+
+This ensures admin authentication remains fast even as the admin list grows.
+
 ## 📋 Security Checklist
 
 Before deploying:
@@ -160,12 +253,20 @@ Before deploying:
 - [ ] No `.env` files committed to repository
 - [ ] All secrets use environment variables
 - [ ] `.env.example` has placeholder values only
-- [ ] Supabase RLS policies are enabled
-- [ ] Admin email is set in environment variables
+- [ ] Supabase RLS policies are enabled (using secure schema)
+- [ ] `is_admin()` function created in Supabase
+- [ ] `admin_users` table populated with admin emails
+- [ ] Migration to secure schema completed ([migrate-to-secure-schema-safe.sql](lib/supabase/migrate-to-secure-schema-safe.sql))
+- [ ] Email validation constraints in place (format + lowercase)
+- [ ] Audit trail columns added to admin_users
+- [ ] Soft delete enforcement enabled (no hard deletes)
+- [ ] Composite indexes created for performance
+- [ ] OAuth providers configured (Google/GitHub) in Supabase Auth
 - [ ] Production secrets set in Vercel dashboard
 - [ ] SSL/TLS enabled (automatic with Vercel)
 - [ ] Security headers configured
 - [ ] Dependencies audited (`npm audit`)
+- [ ] RLS policies tested (see ADMIN-SETUP.md Testing section)
 
 ## 🔍 Regular Security Audits
 
