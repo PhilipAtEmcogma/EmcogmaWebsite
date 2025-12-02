@@ -142,7 +142,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM admin_users
-    WHERE email = auth.jwt() ->> 'email'
+    WHERE LOWER(email) = LOWER(COALESCE(auth.jwt() ->> 'email', ''))
     AND active = true
   );
 END;
@@ -155,6 +155,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Admin users table policies
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
+-- NOTE: These policies use is_admin() which queries admin_users table.
+-- This circular dependency is safe because is_admin() uses SECURITY DEFINER,
+-- which bypasses RLS and executes with the function owner's privileges.
 CREATE POLICY "Only admins can view admin users" ON admin_users
   FOR SELECT USING (is_admin());
 
