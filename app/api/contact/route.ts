@@ -47,7 +47,17 @@ export async function POST(request: NextRequest) {
     }
 
     // reCAPTCHA verified successfully, now submit to Formspree
-    const formspreeResponse = await fetch('https://formspree.io/f/movdgwpg', {
+    const formspreeEndpoint = process.env.FORMSPREE_ENDPOINT;
+
+    if (!formspreeEndpoint) {
+      console.error('FORMSPREE_ENDPOINT is not configured');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const formspreeResponse = await fetch(formspreeEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

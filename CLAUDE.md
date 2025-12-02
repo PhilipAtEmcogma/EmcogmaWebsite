@@ -65,6 +65,9 @@ ADMIN_EMAIL=admin@example.com
 # reCAPTCHA v2 (https://www.google.com/recaptcha/admin)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=xxx  # Client-side
 RECAPTCHA_SECRET_KEY=xxx            # Server-only
+
+# Formspree (https://formspree.io/)
+FORMSPREE_ENDPOINT=https://formspree.io/f/xxx  # Contact form endpoint
 ```
 
 ## Key File Locations

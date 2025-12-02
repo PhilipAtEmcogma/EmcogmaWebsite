@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // First, get the blog post ID from the slug
+    // Verify the blog post exists
     const { data: post, error: postError } = await supabase
       .from('blog_posts')
-      .select('id')
+      .select('slug')
       .eq('slug', postSlug)
       .single();
 
@@ -30,11 +30,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch approved comments for this post
+    // Fetch approved comments for this post (using post_slug from schema)
     const { data: comments, error: commentsError } = await supabase
       .from('comments')
-      .select('id, author, content, created_at')
-      .eq('post_id', post.id)
+      .select('id, author_name, content, created_at')
+      .eq('post_slug', postSlug)
       .eq('approved', true)
       .order('created_at', { ascending: false });
 
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { postSlug, author, content } = body;
+    const { postSlug, author, authorEmail, content } = body;
 
     // Validate required fields
     if (!postSlug || !author || !content) {
@@ -85,12 +85,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate email if provided
+    if (authorEmail && authorEmail.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(authorEmail.trim())) {
+        return NextResponse.json(
+          { error: 'Invalid email address' },
+          { status: 400 }
+        );
+      }
+    }
+
     const supabase = await createClient();
 
-    // Get the blog post ID from the slug
+    // Verify the blog post exists
     const { data: post, error: postError } = await supabase
       .from('blog_posts')
-      .select('id')
+      .select('slug')
       .eq('slug', postSlug)
       .single();
 
@@ -105,8 +116,9 @@ export async function POST(request: NextRequest) {
     const { error: insertError } = await supabase
       .from('comments')
       .insert({
-        post_id: post.id,
-        author: author.trim(),
+        post_slug: postSlug,
+        author_name: author.trim(),
+        author_email: authorEmail?.trim() || null,
         content: content.trim(),
         approved: false, // Requires admin approval
       });

@@ -55,11 +55,14 @@ RECAPTCHA_SECRET_KEY=your-secret-key-here
 
 ## Current Setup
 
-### Your Keys (as of setup)
+### Your Keys
+
+⚠️ **SECURITY NOTE**: Never commit actual keys to version control. Use environment variables.
 
 ```bash
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lcqeh4sAAAAADisOJciVuiSuskhBUiHj1ckQMFl
-RECAPTCHA_SECRET_KEY=6Lcqeh4sAAAAAD3tptc1zIGikvQfmHJHu89MhM6g
+# Add your actual keys to .env.local (gitignored)
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-actual-site-key-here
+RECAPTCHA_SECRET_KEY=your-actual-secret-key-here
 ```
 
 ## Files Involved
@@ -101,14 +104,11 @@ RECAPTCHA_SECRET_KEY=6Lcqeh4sAAAAAD3tptc1zIGikvQfmHJHu89MhM6g
 
 ### Test Keys (Auto-Pass)
 
-For development, you can use Google's test keys that automatically pass verification:
+For development, you can use Google's official test keys that automatically pass verification.
 
-```bash
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
-RECAPTCHA_SECRET_KEY=6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
-```
+**Note**: Google provides official test keys in their documentation at [https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do](https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do)
 
-**Note**: These test keys always pass. Use your real keys for production.
+These test keys always pass. Use your real keys for production.
 
 ## Deployment to Vercel
 
