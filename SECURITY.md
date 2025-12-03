@@ -1,5 +1,20 @@
 # Security Guide
 
+> **📘 For comprehensive security implementation details, see [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md)**
+
+## 🛡️ Security Overview
+
+This project implements enterprise-grade security measures following OWASP best practices:
+
+✅ **Rate Limiting** - Prevents brute force and DDoS attacks
+✅ **Input Validation** - Comprehensive sanitization against XSS and injection
+✅ **CSRF Protection** - Token-based protection for state-changing operations
+✅ **Security Headers** - CSP, HSTS, X-Frame-Options, and more
+✅ **XSS Prevention** - Multi-layer defense with sanitization and CSP
+✅ **SQL Injection Prevention** - Parameterized queries + pattern detection
+✅ **Security Logging** - Real-time tracking of security events
+✅ **Row-Level Security** - Database-enforced access control
+
 ## 🔒 Secrets Management
 
 ### What's Protected
@@ -186,16 +201,83 @@ ORDER BY created_at DESC;
 
 ## 🚨 Security Headers
 
-Configured in `vercel.json`:
+Security headers are automatically applied via middleware to all responses:
 
-```json
-{
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "X-XSS-Protection": "1; mode=block",
-  "Referrer-Policy": "strict-origin-when-cross-origin"
-}
-```
+### Applied Headers
+
+- **Content-Security-Policy**: Restricts resource loading to prevent XSS
+- **Strict-Transport-Security**: Forces HTTPS for 2 years
+- **X-Frame-Options**: `DENY` - Prevents clickjacking
+- **X-Content-Type-Options**: `nosniff` - Prevents MIME sniffing
+- **X-XSS-Protection**: `1; mode=block` - Legacy XSS protection
+- **Referrer-Policy**: Controls referrer information
+- **Permissions-Policy**: Restricts browser features
+
+### Implementation
+
+Headers are applied in:
+1. `lib/supabase/middleware.ts` - All requests
+2. `lib/security/headers.ts` - Security header configurations
+3. `next.config.ts` - Backup headers
+
+## 🔒 Rate Limiting
+
+All API endpoints are protected with rate limiting:
+
+- **API Routes**: 100 requests/minute
+- **Contact Form**: 5 requests/minute
+- **Comments**: 10 requests/minute
+- **Login Attempts**: 5 attempts/15 minutes
+
+Rate limits track both IP address and User-Agent for accuracy.
+
+### Response Headers
+
+When rate limited, responses include:
+- `X-RateLimit-Limit`: Maximum allowed
+- `X-RateLimit-Remaining`: Remaining requests
+- `X-RateLimit-Reset`: Reset timestamp
+- `Retry-After`: Seconds until retry
+
+## 🧹 Input Validation
+
+All user input is validated and sanitized:
+
+### Validation Features
+
+- **HTML Sanitization**: Removes dangerous tags and scripts
+- **Email Validation**: RFC 5322 compliant
+- **URL Validation**: Protocol and format checking
+- **Length Limits**: Prevents oversized inputs
+- **SQL Injection Detection**: Pattern-based detection
+- **XSS Prevention**: Strips event handlers and dangerous protocols
+
+### Protected Endpoints
+
+- `/api/comments` - Comment validation with XSS prevention
+- `/api/contact` - Contact form with email validation + reCAPTCHA
+
+## 📊 Security Logging
+
+All security events are logged for monitoring:
+
+### Logged Events
+
+- Rate limit violations
+- Invalid input attempts
+- SQL injection attempts
+- XSS attempts
+- CSRF token failures
+- Unauthorized access attempts
+
+### Severity Levels
+
+- **LOW**: Minor validation errors
+- **MEDIUM**: Rate limiting, invalid tokens
+- **HIGH**: Injection attempts, unauthorized access
+- **CRITICAL**: Active attacks, system compromises
+
+Logs are available in development console and can be integrated with monitoring services (Sentry, LogRocket, CloudWatch) in production.
 
 ## 📋 Security Checklist
 

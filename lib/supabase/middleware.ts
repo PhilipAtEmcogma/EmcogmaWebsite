@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getSecurityHeaders, getApiSecurityHeaders } from '@/lib/security/headers';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -72,6 +73,16 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
+
+  // Apply security headers to all responses
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const securityHeaders = isApiRoute ? getApiSecurityHeaders() : getSecurityHeaders();
+
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    if (value) {
+      supabaseResponse.headers.set(key, value);
+    }
+  });
 
   return supabaseResponse;
 }
