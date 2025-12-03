@@ -16,6 +16,7 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 **Admin Portal (Full CRUD):**
 - OAuth authentication (Google, GitHub) with database-driven admin whitelist
 - Database-managed admin access via `admin_users` table
+- **10-minute session timeout** - Auto-logout after inactivity for security
 - Blog posts management (create, edit, delete, publish)
 - Projects management with tech stack and featured status
 - Articles management (separate from blog posts)
@@ -41,8 +42,9 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Centralized admin verification with `SECURITY DEFINER` function
 - Single schema file approach (`schema.sql`) for simplified setup
 - ISR for performance optimization (60s revalidation)
-- Static params generation for blog posts
+- Static params generation with cookie-free client for Next.js 15+ compatibility
 - Middleware for session management and admin authorization
+- **10-minute inactivity timeout** with automatic session termination
 - Row-Level Security on all tables with granular access control
 - **Enterprise Security (OWASP-compliant):**
   - Rate limiting (IP + User-Agent tracking) - 5-100 req/min by endpoint
@@ -52,6 +54,7 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
   - Security logging & monitoring (event tracking by severity)
   - Request size limits (10KB max for forms)
   - Restricted image domains (no wildcard hosts)
+  - Session timeout tracking with HTTP-only cookies
   - Comprehensive attack prevention & detection
 
 ### ⏳ Pending Implementation
@@ -134,8 +137,8 @@ lib/
 │   └── logger.ts              # Security event logging & monitoring
 └── supabase/
     ├── client.ts              # Client-side Supabase
-    ├── server.ts              # Server-side Supabase (SSR)
-    ├── middleware.ts          # Session, admin protection & security headers
+    ├── server.ts              # Server-side Supabase with static client for build-time
+    ├── middleware.ts          # Session timeout, admin protection & security headers
     └── schema.sql             # Secure database schema (admin_users + is_admin())
 
 proxy.ts                       # Next.js 16 middleware (calls lib/supabase/middleware.ts)
@@ -244,6 +247,12 @@ npm run lint            # ESLint
   - Restricted image domains (no wildcard hosts)
   - Updated all API endpoints with security measures
   - Created comprehensive security documentation
+- **Session Management & Static Generation:**
+  - Implemented 10-minute inactivity timeout with HTTP-only cookie tracking
+  - Fixed Next.js 15+ "cookies outside request scope" error
+  - Created `createStaticClient()` for build-time static generation
+  - Session automatically expires and redirects to login after 10 minutes idle
+  - Activity timestamp refreshes on each admin route navigation
 
 ## Next Steps
 
@@ -293,6 +302,9 @@ WHERE email = 'admin@example.com';
 - Audit trail for all admin changes (created_by, deactivated_at, deactivated_by, notes)
 - Hard deletion prevented by RLS policy (soft delete only)
 - Composite indexes for optimal `is_admin()` performance
+- **10-minute inactivity timeout** - Sessions expire automatically
+- HTTP-only cookies prevent XSS attacks on session data
+- Secure cookie flags in production (HTTPS-only)
 
 See [ADMIN-SETUP.md](ADMIN-SETUP.md) for detailed setup and usage guide.
 
