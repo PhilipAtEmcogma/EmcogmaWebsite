@@ -1,16 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  performSecurityCheck,
+  RATE_LIMITS,
+  createSecureApiResponse,
+  getRequestContext,
+  SecurityLog,
+  validateSlug,
+} from '@/lib/security';
 
 // GET: Fetch approved comments for a blog post
 export async function GET(request: NextRequest) {
+  const context = getRequestContext(request);
+
   try {
+    // Security check: Rate limiting
+    const securityCheck = await performSecurityCheck(request, {
+      rateLimit: RATE_LIMITS.api,
+    });
+
+    if (!securityCheck.passed) {
+      return securityCheck.response!;
+    }
+
     const { searchParams } = new URL(request.url);
     const postSlug = searchParams.get('postSlug');
 
     if (!postSlug) {
-      return NextResponse.json(
+      SecurityLog.invalidInput(context, 'postSlug', 'Missing post slug parameter');
+      return createSecureApiResponse(
         { error: 'Post slug is required' },
-        { status: 400 }
+        400
+      );
+    }
+
+    // Validate slug format
+    const slugValidation = validateSlug(postSlug);
+    if (!slugValidation.valid) {
+      SecurityLog.invalidInput(context, 'postSlug', slugValidation.error || 'Invalid slug');
+      return createSecureApiResponse(
+        { error: slugValidation.error || 'Invalid post slug' },
+        400
       );
     }
 
@@ -24,9 +54,9 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (postError || !post) {
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Blog post not found' },
-        { status: 404 }
+        404
       );
     }
 
@@ -40,60 +70,67 @@ export async function GET(request: NextRequest) {
 
     if (commentsError) {
       console.error('Error fetching comments:', commentsError);
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Failed to fetch comments' },
-        { status: 500 }
+        500
       );
     }
 
-    return NextResponse.json({ comments: comments || [] }, { status: 200 });
+    return createSecureApiResponse({ comments: comments || [] }, 200);
   } catch (error) {
     console.error('Comments API error:', error);
-    return NextResponse.json(
+    SecurityLog.suspiciousRequest(context, 'Unexpected error in GET /api/comments');
+    return createSecureApiResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     );
   }
 }
 
 // POST: Submit a new comment
 export async function POST(request: NextRequest) {
+  const context = getRequestContext(request);
+
   try {
+    // Security check: Stricter rate limiting for POST + body size validation
+    const securityCheck = await performSecurityCheck(request, {
+      rateLimit: RATE_LIMITS.comments,
+      validateBody: true,
+      maxBodySize: 10 * 1024, // 10KB max
+    });
+
+    if (!securityCheck.passed) {
+      return securityCheck.response!;
+    }
+
     const body = await request.json();
     const { postSlug, author, authorEmail, content } = body;
 
     // Validate required fields
     if (!postSlug || !author || !content) {
-      return NextResponse.json(
+      SecurityLog.invalidInput(context, 'body', 'Missing required fields');
+      return createSecureApiResponse(
         { error: 'Missing required fields: postSlug, author, and content are required' },
-        { status: 400 }
+        400
       );
     }
 
-    // Basic validation
-    if (author.trim().length < 2) {
-      return NextResponse.json(
-        { error: 'Author name must be at least 2 characters' },
-        { status: 400 }
-      );
-    }
+    // Use comprehensive validation
+    const { validateComment } = await import('@/lib/security');
+    const validation = validateComment({
+      author,
+      authorEmail,
+      content,
+      postSlug,
+    });
 
-    if (content.trim().length < 5) {
-      return NextResponse.json(
-        { error: 'Comment must be at least 5 characters' },
-        { status: 400 }
+    if (!validation.valid) {
+      const errorMessage = Object.values(validation.errors)[0];
+      SecurityLog.invalidInput(context, 'comment', errorMessage);
+      return createSecureApiResponse(
+        { error: errorMessage, errors: validation.errors },
+        400
       );
-    }
-
-    // Validate email if provided
-    if (authorEmail && authorEmail.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(authorEmail.trim())) {
-        return NextResponse.json(
-          { error: 'Invalid email address' },
-          { status: 400 }
-        );
-      }
     }
 
     const supabase = await createClient();
@@ -102,13 +139,13 @@ export async function POST(request: NextRequest) {
     const { data: post, error: postError } = await supabase
       .from('blog_posts')
       .select('slug')
-      .eq('slug', postSlug)
+      .eq('slug', validation.sanitized.postSlug)
       .single();
 
     if (postError || !post) {
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Blog post not found' },
-        { status: 404 }
+        404
       );
     }
 
@@ -116,33 +153,34 @@ export async function POST(request: NextRequest) {
     const { error: insertError } = await supabase
       .from('comments')
       .insert({
-        post_slug: postSlug,
-        author_name: author.trim(),
-        author_email: authorEmail?.trim() || null,
-        content: content.trim(),
+        post_slug: validation.sanitized.postSlug,
+        author_name: validation.sanitized.author,
+        author_email: validation.sanitized.authorEmail || null,
+        content: validation.sanitized.content,
         approved: false, // Requires admin approval
       });
 
     if (insertError) {
       console.error('Error inserting comment:', insertError);
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Failed to submit comment' },
-        { status: 500 }
+        500
       );
     }
 
-    return NextResponse.json(
+    return createSecureApiResponse(
       {
         success: true,
         message: 'Comment submitted successfully! It will appear after admin approval.',
       },
-      { status: 200 }
+      200
     );
   } catch (error) {
     console.error('Comment submission error:', error);
-    return NextResponse.json(
+    SecurityLog.suspiciousRequest(context, 'Unexpected error in POST /api/comments');
+    return createSecureApiResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     );
   }
 }

@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getSecurityHeaders, getApiSecurityHeaders } from '@/lib/security/headers';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -34,16 +35,24 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes (admin)
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  // Protected routes (admin) - exclude login page
+  if (request.nextUrl.pathname.startsWith('/admin') &&
+      request.nextUrl.pathname !== '/admin/login') {
     // If not logged in, redirect to login
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
-    // If logged in but not admin email, redirect to login with error
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (user.email !== adminEmail) {
+    // Check if user is an active admin in the database
+    const { data: adminUser, error } = await supabase
+      .from('admin_users')
+      .select('active')
+      .eq('email', user.email)
+      .eq('active', true)
+      .single();
+
+    // If not an admin, redirect to login with error
+    if (error || !adminUser) {
       const url = new URL('/admin/login', request.url);
       url.searchParams.set('error', 'unauthorized');
       return NextResponse.redirect(url);
@@ -52,11 +61,28 @@ export async function updateSession(request: NextRequest) {
 
   // If logged in and accessing login page, redirect to dashboard
   if (request.nextUrl.pathname === '/admin/login' && user) {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (user.email === adminEmail) {
+    // Check if user is an active admin
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('active')
+      .eq('email', user.email)
+      .eq('active', true)
+      .single();
+
+    if (adminUser) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
   }
+
+  // Apply security headers to all responses
+  const isApiRoute = request.nextUrl.pathname.startsWith('/api');
+  const securityHeaders = isApiRoute ? getApiSecurityHeaders() : getSecurityHeaders();
+
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    if (value) {
+      supabaseResponse.headers.set(key, value);
+    }
+  });
 
   return supabaseResponse;
 }

@@ -57,7 +57,11 @@ Check `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://kuafldiotehblyuvnwgu.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key
-ADMIN_EMAIL=emcogma@gmail.com
+```
+
+**Note:** `ADMIN_EMAIL` is no longer needed. Admin access is managed via the `admin_users` table. Ensure your email is in the database:
+```sql
+INSERT INTO admin_users (email) VALUES ('emcogma@gmail.com');
 ```
 
 ## 🎯 Access the Admin Portal

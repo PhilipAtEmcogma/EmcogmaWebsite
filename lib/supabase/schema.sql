@@ -1,8 +1,54 @@
 -- Supabase Database Schema for Emcogma Website
+-- SECURE SCHEMA with Database-Driven Admin Management
+--
+-- This is the ONLY schema file you need. It includes:
+-- ✅ admin_users table for database-driven admin access
+-- ✅ is_admin() function for centralized admin checking
+-- ✅ Secure RLS policies with NO hardcoded emails
+-- ✅ All content tables (blog_posts, projects, articles, products, demos, etc.)
+--
+-- IMPORTANT: After running this schema, add your admin email:
+--   INSERT INTO admin_users (email) VALUES ('your-email@example.com');
+--
 -- Run this in your Supabase SQL editor to set up the database
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================================
+-- ADMIN USERS TABLE (for managing admin access)
+-- ============================================================================
+-- This table stores whitelisted admin emails
+-- Benefit: Easy to add/remove admins without modifying RLS policies
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for fast email lookups
+CREATE INDEX IF NOT EXISTS idx_admin_users_email ON admin_users(email);
+CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(active);
+
+-- ============================================================================
+-- HELPER FUNCTION: Check if user is admin
+-- ============================================================================
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM admin_users
+    WHERE email = auth.jwt() ->> 'email'
+    AND active = true
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- CONTENT TABLES
+-- ============================================================================
 
 -- Blog posts table
 CREATE TABLE IF NOT EXISTS blog_posts (
@@ -126,7 +172,9 @@ CREATE TABLE IF NOT EXISTS demos (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes for better performance
+-- ============================================================================
+-- INDEXES FOR PERFORMANCE
+-- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
 CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published);
 CREATE INDEX IF NOT EXISTS idx_comments_post_slug ON comments(post_slug);
@@ -140,7 +188,40 @@ CREATE INDEX IF NOT EXISTS idx_products_featured ON products(featured);
 CREATE INDEX IF NOT EXISTS idx_demos_slug ON demos(slug);
 CREATE INDEX IF NOT EXISTS idx_demos_published ON demos(published);
 
--- Row Level Security (RLS) Policies
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- Uses is_admin() function for centralized admin checking
+-- ============================================================================
+
+-- Drop existing policies to allow re-running this schema
+DROP POLICY IF EXISTS "Only admins can view admin users" ON admin_users;
+DROP POLICY IF EXISTS "Only admins can manage admin users" ON admin_users;
+DROP POLICY IF EXISTS "Public can view published posts" ON blog_posts;
+DROP POLICY IF EXISTS "Admin can manage posts" ON blog_posts;
+DROP POLICY IF EXISTS "Public can view approved comments" ON comments;
+DROP POLICY IF EXISTS "Anyone can insert comments" ON comments;
+DROP POLICY IF EXISTS "Admin can moderate comments" ON comments;
+DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
+DROP POLICY IF EXISTS "Admin can view subscribers" ON subscribers;
+DROP POLICY IF EXISTS "Public can view projects" ON projects;
+DROP POLICY IF EXISTS "Admin can manage projects" ON projects;
+DROP POLICY IF EXISTS "Anyone can submit contact form" ON contact_submissions;
+DROP POLICY IF EXISTS "Admin can view submissions" ON contact_submissions;
+DROP POLICY IF EXISTS "Public can view published articles" ON articles;
+DROP POLICY IF EXISTS "Admin can manage articles" ON articles;
+DROP POLICY IF EXISTS "Public can view active products" ON products;
+DROP POLICY IF EXISTS "Admin can manage products" ON products;
+DROP POLICY IF EXISTS "Public can view published demos" ON demos;
+DROP POLICY IF EXISTS "Admin can manage demos" ON demos;
+
+-- Admin users table: Only admins can manage
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Only admins can view admin users" ON admin_users
+  FOR SELECT USING (is_admin());
+
+CREATE POLICY "Only admins can manage admin users" ON admin_users
+  FOR ALL USING (is_admin());
 
 -- Blog posts: Public can read published posts, admin can do everything
 ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
@@ -148,8 +229,8 @@ ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can view published posts" ON blog_posts
   FOR SELECT USING (published = true);
 
-CREATE POLICY "Admin can do everything with posts" ON blog_posts
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+CREATE POLICY "Admin can manage posts" ON blog_posts
+  FOR ALL USING (is_admin());
 
 -- Comments: Public can read approved comments, anyone can insert, admin can moderate
 ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
@@ -161,7 +242,7 @@ CREATE POLICY "Anyone can insert comments" ON comments
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Admin can moderate comments" ON comments
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR ALL USING (is_admin());
 
 -- Subscribers: Anyone can insert, only admin can view
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
@@ -170,7 +251,7 @@ CREATE POLICY "Anyone can subscribe" ON subscribers
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Admin can view subscribers" ON subscribers
-  FOR SELECT USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR SELECT USING (is_admin());
 
 -- Projects: Public can read, admin can modify
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
@@ -179,7 +260,7 @@ CREATE POLICY "Public can view projects" ON projects
   FOR SELECT USING (true);
 
 CREATE POLICY "Admin can manage projects" ON projects
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR ALL USING (is_admin());
 
 -- Contact submissions: Anyone can insert, admin can view
 ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
@@ -188,7 +269,7 @@ CREATE POLICY "Anyone can submit contact form" ON contact_submissions
   FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Admin can view submissions" ON contact_submissions
-  FOR SELECT USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR SELECT USING (is_admin());
 
 -- Articles: Public can read published articles, admin can do everything
 ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
@@ -197,7 +278,7 @@ CREATE POLICY "Public can view published articles" ON articles
   FOR SELECT USING (published = true);
 
 CREATE POLICY "Admin can manage articles" ON articles
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR ALL USING (is_admin());
 
 -- Products: Public can read active products, admin can manage
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -206,7 +287,7 @@ CREATE POLICY "Public can view active products" ON products
   FOR SELECT USING (active = true);
 
 CREATE POLICY "Admin can manage products" ON products
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR ALL USING (is_admin());
 
 -- Demos: Public can read published demos, admin can manage
 ALTER TABLE demos ENABLE ROW LEVEL SECURITY;
@@ -215,11 +296,12 @@ CREATE POLICY "Public can view published demos" ON demos
   FOR SELECT USING (published = true);
 
 CREATE POLICY "Admin can manage demos" ON demos
-  FOR ALL USING (auth.jwt() ->> 'email' = 'emcogma@gmail.com');
+  FOR ALL USING (is_admin());
 
--- Functions and triggers
+-- ============================================================================
+-- TRIGGERS FOR AUTO-UPDATING TIMESTAMPS
+-- ============================================================================
 
--- Update updated_at timestamp automatically
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -242,3 +324,30 @@ CREATE TRIGGER update_products_updated_at BEFORE UPDATE ON products
 
 CREATE TRIGGER update_demos_updated_at BEFORE UPDATE ON demos
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_admin_users_updated_at BEFORE UPDATE ON admin_users
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- INITIAL ADMIN USER SETUP
+-- ============================================================================
+-- IMPORTANT: After running this schema, manually insert your admin email:
+--
+-- INSERT INTO admin_users (email) VALUES ('your-admin-email@example.com');
+--
+-- To add additional admins:
+-- INSERT INTO admin_users (email) VALUES ('another-admin@example.com');
+--
+-- To remove admin access:
+-- UPDATE admin_users SET active = false WHERE email = 'email@example.com';
+--
+-- ============================================================================
+
+-- NOTE: This schema uses a centralized is_admin() function that checks
+-- the admin_users table. This provides several security benefits:
+--
+-- 1. No hardcoded emails in RLS policies
+-- 2. Easy to add/remove admins without schema changes
+-- 3. Can temporarily disable admin access by setting active=false
+-- 4. Audit trail of all admin users
+-- 5. Single source of truth for admin permissions

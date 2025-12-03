@@ -93,14 +93,14 @@ cat .env.local
 # Should look like this (with YOUR actual values):
 NEXT_PUBLIC_SUPABASE_URL=https://your-actual-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-actual-anon-key-here
-ADMIN_EMAIL=your-actual-email@example.com
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-actual-site-key
 RECAPTCHA_SECRET_KEY=your-actual-secret-key
 ```
 
+**Note:** `ADMIN_EMAIL` is no longer used. Admin access is managed via the `admin_users` table in Supabase.
+
 **Common mistakes to avoid:**
 - ❌ `your-project-url` (placeholder)
-- ❌ `your-admin-email@example.com` (placeholder)
 - ❌ `xxx` or `your-key` (placeholder)
 - ✅ Real values only!
 
@@ -141,10 +141,11 @@ cat .gitignore | grep ".env"
 ```
 NEXT_PUBLIC_SUPABASE_URL = https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY = your-anon-key
-ADMIN_EMAIL = your-email@example.com
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY = your-site-key
 RECAPTCHA_SECRET_KEY = your-secret-key
 ```
+
+**Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table.
 
 5. Set for: Production, Preview, Development (all three)
 6. Redeploy your site
@@ -190,7 +191,7 @@ http://localhost:3000/admin
 
 # You should be redirected to login
 # Click "Sign in with Google" or "Sign in with GitHub"
-# Use the email from your ADMIN_EMAIL environment variable
+# Use the email you added to the admin_users table in Supabase
 
 # After login, you should see the admin dashboard
 # Try creating a blog post to verify everything works
@@ -309,9 +310,9 @@ Before deploying to production, verify:
    - [ADMIN-SETUP.md](ADMIN-SETUP.md) - Admin portal setup
 
 2. **Common Issues:**
-   - "Unauthorized" error → Check `ADMIN_EMAIL` matches login email
+   - "Unauthorized" error → Check your email is in `admin_users` table with `active = true`
    - OAuth redirect fails → Verify redirect URLs in OAuth provider
-   - RLS errors → Ensure `schema-secure.sql` was executed
+   - RLS errors → Ensure `schema.sql` was executed
    - Missing env vars → Run `npm run dev` and check console
 
 3. **Security Questions:**
