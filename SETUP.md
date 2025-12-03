@@ -191,12 +191,24 @@ The secure schema includes RLS policies that:
 
 **Managing Admins:**
 ```sql
--- Add new admin
-INSERT INTO admin_users (email) VALUES ('new-admin@example.com');
+-- Add new admin (with audit trail)
+INSERT INTO admin_users (email, created_by, notes)
+VALUES ('new-admin@example.com', 'admin@example.com', 'Project collaborator');
 
--- Remove admin
-UPDATE admin_users SET active = false WHERE email = 'admin@example.com';
+-- Remove admin (soft delete with audit trail)
+UPDATE admin_users
+SET active = false,
+    deactivated_at = NOW(),
+    deactivated_by = 'admin@example.com',
+    notes = 'Access no longer needed'
+WHERE email = 'admin@example.com';
 ```
+
+**Security Features:**
+- Email validation (format and lowercase enforcement)
+- Audit trail for all admin changes
+- Soft delete only (hard deletes prevented by RLS)
+- Composite indexes for optimal performance
 
 ### Real-time Subscriptions (Optional)
 

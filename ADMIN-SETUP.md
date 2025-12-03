@@ -197,23 +197,45 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 **Add New Admin:**
 ```sql
-INSERT INTO admin_users (email)
-VALUES ('new-admin@example.com');
+INSERT INTO admin_users (email, created_by, notes)
+VALUES ('new-admin@example.com', 'admin@example.com', 'Added for project management');
 ```
 
-**Remove/Deactivate Admin:**
+**Remove/Deactivate Admin (Soft Delete):**
 ```sql
 UPDATE admin_users
-SET active = false
+SET active = false,
+    deactivated_at = NOW(),
+    deactivated_by = 'admin@example.com',
+    notes = 'No longer needs access'
+WHERE email = 'admin@example.com';
+```
+
+**Reactivate Admin:**
+```sql
+UPDATE admin_users
+SET active = true,
+    deactivated_at = NULL,
+    deactivated_by = NULL,
+    notes = 'Reactivated for continued work'
 WHERE email = 'admin@example.com';
 ```
 
 **List All Admins:**
 ```sql
-SELECT email, active, created_at
+SELECT email, active, created_at, created_by, deactivated_at, deactivated_by, notes
 FROM admin_users
 ORDER BY created_at DESC;
 ```
+
+**Audit Trail:**
+The `admin_users` table includes audit columns to track admin changes:
+- `created_by` - Who added this admin
+- `deactivated_at` - When admin was deactivated
+- `deactivated_by` - Who deactivated the admin
+- `notes` - Additional context for admin changes
+
+**Security Note:** Hard deletion of admin records is prevented by RLS policy. Always use soft delete (set `active = false`) to maintain audit history.
 
 ## File Structure
 
@@ -245,6 +267,13 @@ middleware.ts              # Root middleware
 
 ## Common Issues & Solutions
 
+### Issue: Migration fails with permission error
+**Solution**:
+1. Ensure you're running the migration in Supabase SQL Editor (not via client)
+2. You must be logged in as the project owner or service role
+3. The `is_admin()` function requires SECURITY DEFINER which needs elevated privileges
+4. Check Supabase logs for specific error messages
+
 ### Issue: "Unauthorized" error after login
 **Solution**:
 1. Verify your email is in the `admin_users` table:
@@ -256,6 +285,7 @@ middleware.ts              # Root middleware
    INSERT INTO admin_users (email) VALUES ('your-email@example.com');
    ```
 3. Ensure the `active` column is `true`
+4. Verify email is lowercase (constraint enforces lowercase emails)
 
 ### Issue: Can't see content in admin
 **Solution**: Check browser console for errors. Verify Supabase connection and RLS policies are correctly set up.
@@ -316,26 +346,57 @@ middleware.ts              # Root middleware
 - `content`
 - `approved` (boolean, default false)
 
+## Performance Monitoring
+
+### Monitoring is_admin() Function
+The `is_admin()` function is called on every admin operation. To monitor performance:
+
+```sql
+-- Check function execution stats (requires pg_stat_statements extension)
+SELECT calls, total_time, mean_time, max_time
+FROM pg_stat_statements
+WHERE query LIKE '%is_admin%'
+ORDER BY calls DESC;
+```
+
+**Performance Tips:**
+- The composite index on `(LOWER(email), active)` optimizes admin checks
+- Function uses SECURITY DEFINER which may have slight overhead
+- Consider monitoring if admin operations feel slow
+- Normal execution time should be < 5ms
+
+**Rate Limiting Consideration:**
+While the function is efficient, consider implementing application-level caching:
+- Cache admin status in session for short periods (1-5 minutes)
+- Reduce database queries for repeated admin checks
+- Balance security (fresh checks) vs performance (cached results)
+
 ## Best Practices
 
-1. **Content Creation:**
+1. **Admin Management:**
+   - Always use lowercase emails (enforced by constraint)
+   - Document why admins are added/removed in `notes` column
+   - Use soft delete (set `active = false`) instead of deleting records
+   - Regularly review admin list for security audit
+
+2. **Content Creation:**
    - Use descriptive slugs (lowercase, hyphens)
    - Write clear excerpts for SEO
    - Add relevant tags/tech stack
    - Preview content before publishing
 
-2. **Comment Moderation:**
+3. **Comment Moderation:**
    - Check pending comments regularly
    - Review for spam/inappropriate content
    - Edit if minor corrections needed
    - Delete if spam or abusive
 
-3. **Media Management:**
+4. **Media Management:**
    - Use absolute URLs for images
    - Optimize images before uploading
    - Use descriptive alt text
 
-4. **SEO Optimization:**
+5. **SEO Optimization:**
    - Write unique titles and excerpts
    - Use relevant tags
    - Set accurate read times
@@ -350,6 +411,79 @@ After setting up the admin portal:
 3. ✅ Test comment moderation workflow
 4. ✅ Verify published content appears on public site
 5. ✅ Set up regular backup strategy for database
+
+## Testing RLS Policies
+
+### Recommended Test Cases
+
+To ensure RLS policies work correctly, test these scenarios:
+
+**Admin Authentication Tests:**
+```sql
+-- 1. Test is_admin() returns true for active admin
+-- (Run while logged in as admin)
+SELECT is_admin(); -- Should return true
+
+-- 2. Test is_admin() returns false for inactive admin
+UPDATE admin_users SET active = false WHERE email = 'test@example.com';
+SELECT is_admin(); -- Should return false (if logged in as test@example.com)
+
+-- 3. Test case-insensitive email matching
+INSERT INTO admin_users (email) VALUES ('test@example.com');
+-- Login with Test@Example.com should still work
+```
+
+**Content Management Tests:**
+```sql
+-- 4. Test admin can create content (run as admin)
+INSERT INTO blog_posts (slug, title, content, published)
+VALUES ('test-post', 'Test', 'Content', true);
+-- Should succeed
+
+-- 5. Test non-admin cannot create content (logout, run as anonymous)
+INSERT INTO blog_posts (slug, title, content, published)
+VALUES ('test-post-2', 'Test', 'Content', true);
+-- Should fail with RLS error
+
+-- 6. Test public can read published content
+SELECT * FROM blog_posts WHERE published = true;
+-- Should succeed even when not logged in
+```
+
+**Subscriber & Contact Management Tests:**
+```sql
+-- 7. Test admin can view and manage subscribers (run as admin)
+SELECT * FROM subscribers; -- Should succeed
+UPDATE subscribers SET subscribed = false WHERE email = 'test@example.com'; -- Should succeed
+DELETE FROM subscribers WHERE email = 'test@example.com'; -- Should succeed
+
+-- 8. Test admin can view and manage contact submissions (run as admin)
+SELECT * FROM contact_submissions; -- Should succeed
+UPDATE contact_submissions SET read = true WHERE id = 'some-id'; -- Should succeed
+DELETE FROM contact_submissions WHERE id = 'some-id'; -- Should succeed
+```
+
+**Security Tests:**
+```sql
+-- 9. Test hard delete is prevented on admin_users
+DELETE FROM admin_users WHERE email = 'admin@example.com';
+-- Should fail with RLS policy violation
+
+-- 10. Test email validation
+INSERT INTO admin_users (email) VALUES ('invalid-email');
+-- Should fail with constraint violation
+
+INSERT INTO admin_users (email) VALUES ('UPPERCASE@EXAMPLE.COM');
+-- Should fail with lowercase constraint
+```
+
+### Test Suite Implementation
+Consider implementing automated RLS policy tests:
+1. Create test database or use Supabase test environment
+2. Use pgTAP or similar testing framework
+3. Test all CRUD operations for each content type
+4. Test with different user roles (admin, anonymous, non-admin)
+5. Run tests in CI/CD pipeline
 
 ## Support
 
