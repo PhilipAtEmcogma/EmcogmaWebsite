@@ -34,8 +34,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes (admin)
-  if (request.nextUrl.pathname.startsWith('/admin')) {
+  // Protected routes (admin) - exclude login page
+  if (request.nextUrl.pathname.startsWith('/admin') &&
+      request.nextUrl.pathname !== '/admin/login') {
     // If not logged in, redirect to login
     if (!user) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
