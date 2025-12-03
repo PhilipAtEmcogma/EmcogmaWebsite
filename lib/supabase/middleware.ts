@@ -41,9 +41,16 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
 
-    // If logged in but not admin email, redirect to login with error
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (user.email !== adminEmail) {
+    // Check if user is an active admin in the database
+    const { data: adminUser, error } = await supabase
+      .from('admin_users')
+      .select('active')
+      .eq('email', user.email)
+      .eq('active', true)
+      .single();
+
+    // If not an admin, redirect to login with error
+    if (error || !adminUser) {
       const url = new URL('/admin/login', request.url);
       url.searchParams.set('error', 'unauthorized');
       return NextResponse.redirect(url);
@@ -52,8 +59,15 @@ export async function updateSession(request: NextRequest) {
 
   // If logged in and accessing login page, redirect to dashboard
   if (request.nextUrl.pathname === '/admin/login' && user) {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (user.email === adminEmail) {
+    // Check if user is an active admin
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('active')
+      .eq('email', user.email)
+      .eq('active', true)
+      .single();
+
+    if (adminUser) {
       return NextResponse.redirect(new URL('/admin', request.url));
     }
   }

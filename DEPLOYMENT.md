@@ -31,10 +31,11 @@ Includes: RLS policies, indexes, triggers, functions
 - Copy Project URL → `NEXT_PUBLIC_SUPABASE_URL`
 - Copy anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-### 1.4 Create Admin User
-**Authentication > Users > Invite User**
-- Email must match `ADMIN_EMAIL` environment variable
-- Complete signup via email link
+### 1.4 Add Admin User to Database
+**After running the schema.sql, add your admin email:**
+- Go to Supabase SQL Editor
+- Run: `INSERT INTO admin_users (email) VALUES ('your-email@example.com');`
+- Admin users can now authenticate via OAuth (Google/GitHub)
 
 ## Step 2: Deploy to Vercel
 
@@ -64,7 +65,6 @@ In Vercel Dashboard → Settings → Environment Variables:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-ADMIN_EMAIL=your-admin@email.com
 
 # reCAPTCHA (https://www.google.com/recaptcha/admin)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
@@ -73,6 +73,8 @@ RECAPTCHA_SECRET_KEY=your-secret-key
 # Optional
 SITE_URL=https://your-domain.vercel.app
 ```
+
+**Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in your Supabase database.
 
 **Important:**
 - Set for Production, Preview, and Development
@@ -98,9 +100,10 @@ vercel
 # Add environment variables
 vercel env add NEXT_PUBLIC_SUPABASE_URL
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
-vercel env add ADMIN_EMAIL
 vercel env add NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 vercel env add RECAPTCHA_SECRET_KEY
+
+# Note: ADMIN_EMAIL is no longer needed - admin access via admin_users table
 
 # Production deployment
 vercel --prod

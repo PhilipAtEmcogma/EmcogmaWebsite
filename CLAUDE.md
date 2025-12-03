@@ -14,15 +14,17 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - API routes: `/api/comments` (GET/POST), `/api/contact` (POST with reCAPTCHA)
 
 **Admin Portal (Full CRUD):**
-- OAuth authentication (Google, GitHub) with email whitelist
+- OAuth authentication (Google, GitHub) with database-driven admin whitelist
+- Database-managed admin access via `admin_users` table
 - Blog posts management (create, edit, delete, publish)
 - Projects management with tech stack and featured status
 - Articles management (separate from blog posts)
 - Products management (SaaS products with pricing)
 - Demos management (interactive demos and code samples)
 - Comment moderation (approve, edit, delete)
-- Middleware-based route protection
+- Middleware-based route protection with session management
 - Tabbed interface for all content types
+- Add/remove admins via SQL without code deployment
 
 **UI/UX:**
 - Cyberpunk theme (neon cyan, magenta, matrix green)
@@ -31,13 +33,16 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Contact form with Google reCAPTCHA v2 + Formspree integration
 - Social sharing (Twitter, LinkedIn, Copy Link)
 
-**Infrastructure:**
+**Infrastructure & Security:**
 - Supabase: PostgreSQL with secure RLS policies using `is_admin()` function
 - Supabase Auth with OAuth providers (Google, GitHub)
-- Database-driven admin management via `admin_users` table
-- ISR for performance optimization
+- Database-driven admin management via `admin_users` table (no hardcoded emails)
+- Centralized admin verification with `SECURITY DEFINER` function
+- Single schema file approach (`schema.sql`) for simplified setup
+- ISR for performance optimization (60s revalidation)
 - Static params generation for blog posts
 - Middleware for session management and admin authorization
+- Row-Level Security on all tables with granular access control
 
 ### ⏳ Pending Implementation
 
@@ -61,15 +66,16 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
-ADMIN_EMAIL=admin@example.com
 
 # reCAPTCHA v2 (https://www.google.com/recaptcha/admin)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=xxx  # Client-side
 RECAPTCHA_SECRET_KEY=xxx            # Server-only
 
 # Formspree (https://formspree.io/)
-FORMSPREE_ENDPOINT=https://formspree.io/f/xxx  # Contact form endpoint
+FORMSPREE_ENDPOINT=https://formspere.io/f/xxx  # Contact form endpoint
 ```
+
+**Note:** `ADMIN_EMAIL` is no longer used. Admin access is now managed via the `admin_users` table in Supabase.
 
 ## Key File Locations
 

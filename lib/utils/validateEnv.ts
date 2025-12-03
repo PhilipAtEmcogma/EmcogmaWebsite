@@ -23,7 +23,6 @@ export function validateEnv(): EnvValidationResult {
   const requiredVars = [
     'NEXT_PUBLIC_SUPABASE_URL',
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'ADMIN_EMAIL',
   ];
 
   // Check for missing required variables
@@ -43,13 +42,9 @@ export function validateEnv(): EnvValidationResult {
     }
   }
 
-  // Validate admin email format
-  if (process.env.ADMIN_EMAIL) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(process.env.ADMIN_EMAIL)) {
-      errors.push('ADMIN_EMAIL must be a valid email address');
-    }
-  }
+  // NOTE: ADMIN_EMAIL is no longer required.
+  // Admin access is managed via the admin_users table in Supabase database.
+  // Add admins with: INSERT INTO admin_users (email) VALUES ('email@example.com');
 
   // Validate reCAPTCHA configuration (optional but recommended)
   if (!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY) {

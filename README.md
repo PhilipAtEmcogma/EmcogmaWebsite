@@ -52,7 +52,10 @@ Edit `.env.local`:
 # Supabase (from Supabase Dashboard > Settings > API)
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-ADMIN_EMAIL=your-email@example.com
+
+# Admin access is managed via admin_users table in database
+# After running schema.sql, add admin with:
+# INSERT INTO admin_users (email) VALUES ('your-email@example.com');
 
 # Google reCAPTCHA v2
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
@@ -198,9 +201,10 @@ npm run lint             # ESLint check
 **Environment variables to add in Vercel:**
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `ADMIN_EMAIL`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `RECAPTCHA_SECRET_KEY`
+
+**Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in your Supabase database.
 
 Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 
