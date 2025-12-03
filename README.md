@@ -21,7 +21,7 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 ### Technical Highlights
 - **SEO Optimized** - Auto-generated sitemap, robots.txt, Open Graph tags, PWA manifest
 - **Performance** - ISR (60s revalidation), static generation, Next.js Image optimization
-- **Security** - Secure RLS policies with centralized `is_admin()` function, database-driven admin access, server-side reCAPTCHA verification
+- **Security** - Secure RLS policies with centralized `is_admin()` function, database-driven admin access, 10-minute session timeout, server-side reCAPTCHA verification
 - **Responsive** - Mobile-first design, sticky navigation, adaptive layouts
 
 ## 🚀 Quick Start
@@ -117,10 +117,17 @@ components/
 lib/
 ├── auth/
 │   └── admin.ts                # Admin auth utilities (database queries)
+├── security/
+│   ├── index.ts                # Centralized security exports
+│   ├── rateLimit.ts            # Rate limiting
+│   ├── validation.ts           # Input validation
+│   ├── csrf.ts                 # CSRF protection
+│   ├── headers.ts              # Security headers
+│   └── logger.ts               # Security logging
 └── supabase/
     ├── client.ts               # Client-side Supabase
-    ├── server.ts               # Server-side (SSR)
-    ├── middleware.ts           # Session management & route protection
+    ├── server.ts               # Server-side with static client for build-time
+    ├── middleware.ts           # Session timeout & route protection
     └── schema.sql              # Secure database schema with admin_users table
 
 proxy.ts                        # Next.js 16 middleware entry point
@@ -217,16 +224,34 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md)
 
 ## 🔐 Security
 
-- **Secure RLS Policies** - Centralized `is_admin()` function for all admin checks
+### Authentication & Session Management
+- **10-minute Inactivity Timeout** - Sessions automatically expire after 10 minutes of idle time
+- **HTTP-only Cookies** - Session tracking cookies protected from XSS attacks
+- **Secure Cookie Flags** - HTTPS-only transmission in production
 - **Database-driven Admin Access** - `admin_users` table eliminates hardcoded emails
+- **OAuth Providers** - Secure login via Google and GitHub
+
+### Data Protection
+- **Secure RLS Policies** - Centralized `is_admin()` function for all admin checks
 - **Row-Level Security** - All Supabase tables protected with RLS
 - **Server-side Verification** - reCAPTCHA tokens verified server-side only
 - **Environment Variables** - Secrets never exposed to client
-- **HTTPS** - Enforced in production (automatic with Vercel)
 - **Input Validation** - All forms validated client + server
-- **Easy Admin Management** - Add/remove admins via SQL without code/schema changes
 
-See [SECURITY.md](SECURITY.md) for security best practices.
+### Enterprise Security (OWASP-compliant)
+- **Rate Limiting** - IP + User-Agent tracking (5-100 req/min by endpoint)
+- **CSRF Protection** - Token-based validation for state-changing operations
+- **XSS Prevention** - Input sanitization and Content Security Policy
+- **Security Headers** - CSP, HSTS, X-Frame-Options, X-Content-Type-Options
+- **Security Logging** - Event tracking and monitoring by severity
+- **Request Size Limits** - 10KB max for form submissions
+
+### Admin Management
+- **Easy Admin Management** - Add/remove admins via SQL without code/schema changes
+- **Audit Trail** - Full tracking of admin additions/removals with timestamps
+- **HTTPS** - Enforced in production (automatic with Vercel)
+
+See [SECURITY.md](SECURITY.md) and [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md) for detailed security documentation.
 
 ## 📚 API Endpoints
 

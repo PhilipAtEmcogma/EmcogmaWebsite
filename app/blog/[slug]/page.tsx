@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createStaticClient } from '@/lib/supabase/server';
 import CommentSection from '@/components/blog/CommentSection';
 
 interface BlogPostPageProps {
@@ -16,7 +16,7 @@ export const revalidate = 60;
 // Generate metadata dynamically
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const { data: post } = await supabase
     .from('blog_posts')
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
 
 // Generate static params for all published posts
 export async function generateStaticParams() {
-  const supabase = await createClient();
+  const supabase = createStaticClient();
 
   const { data: posts } = await supabase
     .from('blog_posts')

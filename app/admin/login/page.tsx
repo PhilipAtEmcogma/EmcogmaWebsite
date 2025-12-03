@@ -14,6 +14,8 @@ export default function AdminLoginPage() {
     const errorParam = searchParams.get('error');
     if (errorParam === 'unauthorized') {
       setError('Unauthorized: Only admin users can access this area.');
+    } else if (errorParam === 'session_timeout') {
+      setError('Your session has expired due to inactivity. Please sign in again.');
     }
   }, [searchParams]);
 
