@@ -32,7 +32,7 @@ export default function Footer() {
               &lt;EMCOGMA/&gt;
             </div>
             <p className="text-foreground/60 text-sm">
-              Cyberpunk innovation meets modern development. Building the future, one project at a time.
+              EMCOGMA is a hub for future-focused engineering. We build intelligent systems, explore emerging technologies, and chronicle the ideas, research, and projects that chart the emerging horizon of a world co-authored by human imagination and machine intelligence.
             </p>
           </div>
 

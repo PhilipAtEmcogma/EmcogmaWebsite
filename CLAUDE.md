@@ -28,6 +28,7 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 
 **UI/UX:**
 - Cyberpunk theme (neon cyan, magenta, matrix green)
+- Updated brand messaging: "EMCOGMA is a hub for future-focused engineering..."
 - Responsive layout with sticky navigation
 - SEO optimization (sitemap, robots.txt, Open Graph, metadata)
 - Contact form with Google reCAPTCHA v2 + Formspree integration
@@ -82,9 +83,11 @@ FORMSPREE_ENDPOINT=https://formspere.io/f/xxx  # Contact form endpoint
 ```
 app/
 ├── admin/
-│   ├── layout.tsx             # Admin auth guard
-│   ├── page.tsx               # Admin dashboard with tabs
-│   └── login/page.tsx         # OAuth login page
+│   ├── layout.tsx             # Simplified wrapper (auth handled by middleware)
+│   ├── login/
+│   │   ├── layout.tsx         # Login page wrapper
+│   │   └── page.tsx           # OAuth login page (Google, GitHub)
+│   └── page.tsx               # Admin dashboard with tabs
 ├── api/
 │   ├── comments/route.ts      # Comments GET/POST (Supabase)
 │   └── contact/route.ts       # Contact form (reCAPTCHA + Formspree)
@@ -112,14 +115,14 @@ components/
 
 lib/
 ├── auth/
-│   └── admin.ts               # Admin auth utilities
+│   └── admin.ts               # Admin auth utilities (database queries)
 └── supabase/
     ├── client.ts              # Client-side Supabase
     ├── server.ts              # Server-side Supabase (SSR)
     ├── middleware.ts          # Session & admin route protection
     └── schema.sql             # Secure database schema (admin_users + is_admin())
 
-middleware.ts                  # Root middleware
+proxy.ts                       # Next.js 16 middleware (calls lib/supabase/middleware.ts)
 ```
 
 ## Database Schema
@@ -207,15 +210,25 @@ npm start               # Run production server
 npm run lint            # ESLint
 ```
 
+## Recent Updates (December 2025)
+
+✅ **Completed:**
+- Migrated to secure schema with `admin_users` table and centralized `is_admin()` function
+- Fixed Next.js 16 middleware conflicts (proxy.ts approach)
+- Resolved admin login redirect loops by simplifying layout authentication
+- Updated brand messaging in footer component
+- All documentation updated to reflect database-driven admin management
+
 ## Next Steps
 
 1. ~~Supabase integration~~ ✅ COMPLETED
 2. ~~API routes (comments, contact)~~ ✅ COMPLETED
-3. ~~Admin authentication~~ ✅ COMPLETED - OAuth with email whitelist
+3. ~~Admin authentication~~ ✅ COMPLETED - OAuth with database-driven whitelist
 4. ~~Admin CRUD~~ ✅ COMPLETED - Full content management for all types
-5. **Newsletter** - Build subscriber management UI
-6. **Enhancements** - Search, pagination, analytics, email sending
-7. **Media** - Image upload to Supabase Storage
+5. ~~Secure schema migration~~ ✅ COMPLETED - Database-driven admin access
+6. **Newsletter** - Build subscriber management UI
+7. **Enhancements** - Search, pagination, analytics, email sending
+8. **Media** - Image upload to Supabase Storage
 
 ## Admin Portal
 

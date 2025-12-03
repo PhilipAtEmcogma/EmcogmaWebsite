@@ -2,6 +2,8 @@
 
 A cyberpunk-themed personal brand website built with Next.js 16, featuring dynamic blog, portfolio showcase, SaaS landing page, and contact form with reCAPTCHA verification.
 
+**EMCOGMA is a hub for future-focused engineering.** We build intelligent systems, explore emerging technologies, and chronicle the ideas, research, and projects that chart the emerging horizon of a world co-authored by human imagination and machine intelligence.
+
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
@@ -112,11 +114,16 @@ components/
 ├── saas/                       # Features, Pricing, etc.
 └── layout/                     # Header, Footer
 
-lib/supabase/
-├── client.ts                   # Client-side Supabase
-├── server.ts                   # Server-side (SSR)
-├── middleware.ts               # Session management
-└── schema.sql                  # Secure database schema with admin_users table
+lib/
+├── auth/
+│   └── admin.ts                # Admin auth utilities (database queries)
+└── supabase/
+    ├── client.ts               # Client-side Supabase
+    ├── server.ts               # Server-side (SSR)
+    ├── middleware.ts           # Session management & route protection
+    └── schema.sql              # Secure database schema with admin_users table
+
+proxy.ts                        # Next.js 16 middleware entry point
 ```
 
 ## 🗄️ Database Schema
@@ -285,15 +292,21 @@ Submit contact form with reCAPTCHA verification.
 - [x] SEO optimization (sitemap, Open Graph)
 - [x] Responsive design
 
-### 🔄 In Progress / Planned
+### ✅ Recently Completed (December 2025)
 - [x] Admin authentication with Supabase Auth (OAuth with Google/GitHub)
 - [x] Admin CRUD interfaces (Blog, Projects, Articles, Products, Demos)
 - [x] Secure schema with `is_admin()` function and `admin_users` table
+- [x] Fixed Next.js 16 middleware conflicts (proxy.ts approach)
+- [x] Resolved admin login redirect loops
+- [x] Updated brand messaging in footer component
+
+### 🔄 Planned Features
 - [ ] Newsletter subscriber management UI
 - [ ] Search functionality
 - [ ] Pagination for blog/portfolio
 - [ ] Email sending (newsletters)
 - [ ] Analytics integration
+- [ ] Image upload to Supabase Storage
 
 ## 📖 Documentation
 
