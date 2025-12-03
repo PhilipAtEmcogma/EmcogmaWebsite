@@ -36,46 +36,70 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Check session timeout (10 minutes = 600000ms)
-  const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
-  const lastActivityCookie = request.cookies.get('last_activity');
+  const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES || '10') * 60 * 1000;
 
-  if (user && lastActivityCookie) {
-    const lastActivity = parseInt(lastActivityCookie.value);
+  // Handle session timeout for authenticated users on admin routes
+  if (user && request.nextUrl.pathname.startsWith('/admin')) {
+    const lastActivityCookie = request.cookies.get('last_activity');
     const now = Date.now();
 
-    // If more than 10 minutes have passed since last activity
-    if (now - lastActivity > SESSION_TIMEOUT) {
-      // Sign out the user
-      await supabase.auth.signOut();
+    // Check if this is first login or existing session
+    if (lastActivityCookie) {
+      // Validate cookie value is a valid number
+      const lastActivity = parseInt(lastActivityCookie.value, 10);
 
-      // Redirect to login with timeout message
-      if (request.nextUrl.pathname.startsWith('/admin') &&
-          request.nextUrl.pathname !== '/admin/login') {
-        const url = new URL('/admin/login', request.url);
-        url.searchParams.set('error', 'session_timeout');
-        const response = NextResponse.redirect(url);
+      if (isNaN(lastActivity)) {
+        // Invalid cookie value - treat as expired session
+        await supabase.auth.signOut();
 
-        // Clear the last activity cookie
-        response.cookies.delete('last_activity');
+        if (request.nextUrl.pathname !== '/admin/login') {
+          const url = new URL('/admin/login', request.url);
+          url.searchParams.set('error', 'session_timeout');
+          const response = NextResponse.redirect(url);
+          response.cookies.delete('last_activity');
 
-        // Apply security headers
-        const securityHeaders = getSecurityHeaders();
-        Object.entries(securityHeaders).forEach(([key, value]) => {
-          if (value) response.headers.set(key, value);
-        });
+          // Apply security headers
+          const securityHeaders = getSecurityHeaders();
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            if (value) response.headers.set(key, value);
+          });
 
-        return response;
+          return response;
+        }
+      }
+
+      // Check if session has timed out
+      if (now - lastActivity > SESSION_TIMEOUT) {
+        // Sign out the user
+        await supabase.auth.signOut();
+
+        // Redirect to login with timeout message
+        if (request.nextUrl.pathname !== '/admin/login') {
+          const url = new URL('/admin/login', request.url);
+          url.searchParams.set('error', 'session_timeout');
+          const response = NextResponse.redirect(url);
+
+          // Clear the last activity cookie
+          response.cookies.delete('last_activity');
+
+          // Apply security headers
+          const securityHeaders = getSecurityHeaders();
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            if (value) response.headers.set(key, value);
+          });
+
+          return response;
+        }
       }
     }
-  }
 
-  // Update last activity timestamp for authenticated users on admin routes
-  if (user && request.nextUrl.pathname.startsWith('/admin')) {
-    supabaseResponse.cookies.set('last_activity', Date.now().toString(), {
+    // Update last activity timestamp (for both first login and session refresh)
+    // This happens AFTER timeout check to ensure atomic operation
+    supabaseResponse.cookies.set('last_activity', now.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: SESSION_TIMEOUT / 1000, // Cookie expires in 10 minutes
+      maxAge: SESSION_TIMEOUT / 1000, // Cookie expires based on timeout
     });
   }
 
