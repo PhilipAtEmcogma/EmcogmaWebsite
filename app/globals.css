@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0f;
+  --background: #0e0e10;
   --foreground: #ffffff;
+  --cp-yellow: #fce700;
+  --cp-red: #ff003c;
+  --cp-blue: #0047ff;
+  --cp-cyan: #00f0ff;
 }
 
 @layer base {
@@ -17,37 +21,42 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Scrollbar styling */
+  /* Scrollbar styling - CP2077 yellow theme */
   ::-webkit-scrollbar {
     width: 10px;
   }
 
   ::-webkit-scrollbar-track {
     @apply bg-cyber-darker;
+    border-left: 1px solid rgba(252, 231, 0, 0.1);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-cyber-primary/30 rounded-lg;
+    @apply bg-cyber-primary/40 rounded-none;
+    border-left: 2px solid rgba(252, 231, 0, 0.6);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-cyber-primary/50;
+    @apply bg-cyber-primary/60;
+    box-shadow: 0 0 10px rgba(252, 231, 0, 0.4);
   }
 }
 
 @layer components {
-  /* Cyberpunk button styles */
+  /* Cyberpunk 2077 button styles */
   .btn-cyber {
-    @apply relative px-6 py-3 font-mono font-bold text-cyber-primary
-           border-2 border-cyber-primary bg-transparent
-           transition-all duration-300 overflow-hidden
-           hover:text-cyber-dark hover:shadow-[0_0_20px_rgba(0,240,255,0.5)];
+    @apply relative px-6 py-3 font-mono font-bold text-cyber-primary uppercase
+           border-2 border-cyber-primary bg-cyber-darker/80
+           transition-all duration-200 overflow-hidden
+           hover:text-cyber-dark hover:border-cyber-yellow
+           shadow-[0_0_10px_rgba(252,231,0,0.2)];
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
   }
 
   .btn-cyber::before {
     content: '';
     @apply absolute inset-0 bg-cyber-primary transform -translate-x-full
-           transition-transform duration-300;
+           transition-transform duration-200;
     z-index: -1;
   }
 
@@ -55,54 +64,99 @@
     @apply translate-x-0;
   }
 
-  /* Neon text effect */
+  .btn-cyber:hover {
+    box-shadow: 0 0 20px rgba(252, 231, 0, 0.6), 0 0 30px rgba(252, 231, 0, 0.3);
+  }
+
+  /* CP2077 Neon text effects */
   .neon-text {
-    @apply text-cyber-primary;
+    @apply text-cyber-primary font-bold uppercase tracking-wider;
     text-shadow:
-      0 0 7px rgba(0, 240, 255, 0.7),
-      0 0 10px rgba(0, 240, 255, 0.5),
-      0 0 21px rgba(0, 240, 255, 0.3);
+      0 0 5px rgba(252, 231, 0, 1),
+      0 0 10px rgba(252, 231, 0, 0.8),
+      0 0 20px rgba(252, 231, 0, 0.6),
+      0 0 30px rgba(255, 111, 0, 0.4);
+  }
+
+  .neon-text-red {
+    @apply text-cyber-secondary font-bold uppercase tracking-wider;
+    text-shadow:
+      0 0 5px rgba(255, 0, 60, 1),
+      0 0 10px rgba(255, 0, 60, 0.8),
+      0 0 20px rgba(255, 0, 60, 0.6),
+      0 0 30px rgba(255, 0, 132, 0.4);
+  }
+
+  .neon-text-cyan {
+    @apply text-cyber-accent font-bold uppercase tracking-wider;
+    text-shadow:
+      0 0 5px rgba(0, 240, 255, 1),
+      0 0 10px rgba(0, 240, 255, 0.8),
+      0 0 20px rgba(0, 240, 255, 0.6),
+      0 0 30px rgba(0, 71, 255, 0.4);
   }
 
   .neon-text-pink {
-    @apply text-cyber-secondary;
+    @apply text-cyber-pink font-bold uppercase tracking-wider;
     text-shadow:
-      0 0 7px rgba(255, 0, 255, 0.7),
-      0 0 10px rgba(255, 0, 255, 0.5),
-      0 0 21px rgba(255, 0, 255, 0.3);
+      0 0 5px rgba(255, 0, 132, 1),
+      0 0 10px rgba(255, 0, 132, 0.8),
+      0 0 20px rgba(255, 0, 132, 0.6);
   }
 
-  .neon-text-green {
-    @apply text-cyber-accent;
-    text-shadow:
-      0 0 7px rgba(0, 255, 65, 0.7),
-      0 0 10px rgba(0, 255, 65, 0.5),
-      0 0 21px rgba(0, 255, 65, 0.3);
-  }
-
-  /* Card styles */
+  /* CP2077 Card styles with angular design */
   .card-cyber {
-    @apply bg-cyber-light/30 border border-cyber-primary/30
-           backdrop-blur-sm rounded-lg p-6
-           hover:border-cyber-primary/60 transition-all duration-300
-           hover:shadow-[0_0_20px_rgba(0,240,255,0.2)];
+    @apply bg-cyber-light/50 border-2 border-cyber-primary/40
+           backdrop-blur-sm p-6 relative
+           hover:border-cyber-primary transition-all duration-200
+           shadow-[0_0_15px_rgba(252,231,0,0.1)];
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   }
 
-  /* Grid background */
+  .card-cyber:hover {
+    box-shadow: 0 0 25px rgba(252, 231, 0, 0.3), 0 0 35px rgba(252, 231, 0, 0.15);
+  }
+
+  .card-cyber::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, transparent 50%, rgba(252, 231, 0, 0.4) 50%);
+  }
+
+  .card-cyber::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, rgba(252, 231, 0, 0.4) 50%, transparent 50%);
+  }
+
+  /* CP2077 Grid background */
   .cyber-grid-bg {
     background-image:
-      linear-gradient(0deg, transparent 24%, rgba(0, 240, 255, .05) 25%, rgba(0, 240, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 240, 255, .05) 75%, rgba(0, 240, 255, .05) 76%, transparent 77%, transparent),
-      linear-gradient(90deg, transparent 24%, rgba(0, 240, 255, .05) 25%, rgba(0, 240, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 240, 255, .05) 75%, rgba(0, 240, 255, .05) 76%, transparent 77%, transparent);
-    background-size: 50px 50px;
+      linear-gradient(0deg, transparent 24%, rgba(252, 231, 0, .04) 25%, rgba(252, 231, 0, .04) 26%, transparent 27%, transparent 74%, rgba(252, 231, 0, .04) 75%, rgba(252, 231, 0, .04) 76%, transparent 77%, transparent),
+      linear-gradient(90deg, transparent 24%, rgba(252, 231, 0, .04) 25%, rgba(252, 231, 0, .04) 26%, transparent 27%, transparent 74%, rgba(252, 231, 0, .04) 75%, rgba(252, 231, 0, .04) 76%, transparent 77%, transparent);
+    background-size: 40px 40px;
   }
 
-  /* Input styles */
+  /* CP2077 Input styles */
   .input-cyber {
-    @apply bg-cyber-dark/50 border-2 border-cyber-primary/30
-           text-foreground px-4 py-2 rounded
+    @apply bg-cyber-dark/80 border-2 border-cyber-primary/40
+           text-foreground px-4 py-3 font-mono
            focus:outline-none focus:border-cyber-primary
-           focus:shadow-[0_0_10px_rgba(0,240,255,0.3)]
-           transition-all duration-300;
+           focus:shadow-[0_0_15px_rgba(252,231,0,0.4)]
+           transition-all duration-200;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%);
+  }
+
+  .input-cyber:focus {
+    background: rgba(252, 231, 0, 0.05);
   }
 
   /* Link styles */
@@ -123,19 +177,24 @@
     text-wrap: balance;
   }
 
-  /* Gradient text */
+  /* CP2077 Gradient text */
   .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #00f0ff 0%, #ff00ff 100%);
+    @apply bg-clip-text text-transparent font-bold uppercase tracking-wide;
+    background-image: linear-gradient(135deg, #fce700 0%, #ff003c 50%, #0047ff 100%);
   }
 
-  .gradient-text-green {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #00ff41 0%, #00f0ff 100%);
+  .gradient-text-yellow {
+    @apply bg-clip-text text-transparent font-bold;
+    background-image: linear-gradient(135deg, #fce700 0%, #ff6f00 100%);
+  }
+
+  .gradient-text-cyan {
+    @apply bg-clip-text text-transparent font-bold;
+    background-image: linear-gradient(135deg, #00f0ff 0%, #0047ff 100%);
   }
 }
 
-/* Animations */
+/* CP2077 Animations */
 @keyframes scan-line {
   0% {
     top: 0;
@@ -156,7 +215,132 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.8), transparent);
-  animation: scan-line 4s linear infinite;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(252, 231, 0, 0.8), transparent);
+  animation: scan-line 3s linear infinite;
+}
+
+/* CP2077 Glitch effect */
+.glitch {
+  position: relative;
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.glitch::before {
+  animation: glitch-1 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+  color: #fce700;
+  z-index: -1;
+}
+
+.glitch::after {
+  animation: glitch-2 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) reverse both infinite;
+  color: #ff003c;
+  z-index: -2;
+}
+
+@keyframes glitch-1 {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-3px);
+  }
+  40% {
+    transform: translateX(3px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes glitch-2 {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(3px);
+  }
+  40% {
+    transform: translateX(-3px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  80% {
+    transform: translateX(-3px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Holographic effect */
+.holographic {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(252, 231, 0, 0.1) 0%,
+    rgba(0, 240, 255, 0.1) 25%,
+    rgba(255, 0, 60, 0.1) 50%,
+    rgba(0, 71, 255, 0.1) 75%,
+    rgba(252, 231, 0, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: holographic-shift 3s ease infinite;
+}
+
+@keyframes holographic-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* CP2077 corner accent */
+.corner-accent {
+  position: relative;
+}
+
+.corner-accent::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-top: 3px solid #fce700;
+  border-right: 3px solid #fce700;
+  box-shadow: 0 0 10px rgba(252, 231, 0, 0.5);
+}
+
+.corner-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  width: 20px;
+  height: 20px;
+  border-bottom: 3px solid #fce700;
+  border-left: 3px solid #fce700;
+  box-shadow: 0 0 10px rgba(252, 231, 0, 0.5);
 }
