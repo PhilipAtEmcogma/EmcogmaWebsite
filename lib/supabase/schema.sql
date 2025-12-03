@@ -193,6 +193,27 @@ CREATE INDEX IF NOT EXISTS idx_demos_published ON demos(published);
 -- Uses is_admin() function for centralized admin checking
 -- ============================================================================
 
+-- Drop existing policies to allow re-running this schema
+DROP POLICY IF EXISTS "Only admins can view admin users" ON admin_users;
+DROP POLICY IF EXISTS "Only admins can manage admin users" ON admin_users;
+DROP POLICY IF EXISTS "Public can view published posts" ON blog_posts;
+DROP POLICY IF EXISTS "Admin can manage posts" ON blog_posts;
+DROP POLICY IF EXISTS "Public can view approved comments" ON comments;
+DROP POLICY IF EXISTS "Anyone can insert comments" ON comments;
+DROP POLICY IF EXISTS "Admin can moderate comments" ON comments;
+DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
+DROP POLICY IF EXISTS "Admin can view subscribers" ON subscribers;
+DROP POLICY IF EXISTS "Public can view projects" ON projects;
+DROP POLICY IF EXISTS "Admin can manage projects" ON projects;
+DROP POLICY IF EXISTS "Anyone can submit contact form" ON contact_submissions;
+DROP POLICY IF EXISTS "Admin can view submissions" ON contact_submissions;
+DROP POLICY IF EXISTS "Public can view published articles" ON articles;
+DROP POLICY IF EXISTS "Admin can manage articles" ON articles;
+DROP POLICY IF EXISTS "Public can view active products" ON products;
+DROP POLICY IF EXISTS "Admin can manage products" ON products;
+DROP POLICY IF EXISTS "Public can view published demos" ON demos;
+DROP POLICY IF EXISTS "Admin can manage demos" ON demos;
+
 -- Admin users table: Only admins can manage
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
