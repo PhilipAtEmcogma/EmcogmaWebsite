@@ -6,6 +6,39 @@
 /**
  * Content Security Policy (CSP)
  * Prevents XSS and other code injection attacks
+ *
+ * ⚠️ SECURITY NOTE ⚠️
+ * Current implementation uses 'unsafe-inline' and 'unsafe-eval' for compatibility with:
+ * - Next.js runtime and hydration
+ * - Tailwind CSS inline styles
+ * - Google reCAPTCHA inline scripts
+ *
+ * These directives weaken XSS protection. For stronger security, consider:
+ *
+ * 1. NONCE-BASED CSP (Recommended for Next.js 13+):
+ *    - Generate unique nonce per request in middleware
+ *    - Add nonce to <script> and <style> tags
+ *    - Replace 'unsafe-inline' with 'nonce-{random}'
+ *
+ *    Example implementation:
+ *    ```typescript
+ *    // In middleware:
+ *    const nonce = crypto.randomBytes(16).toString('base64');
+ *    request.headers.set('x-nonce', nonce);
+ *
+ *    // In CSP:
+ *    script-src 'self' 'nonce-${nonce}' https://www.google.com
+ *
+ *    // In pages:
+ *    <script nonce={nonce}>...</script>
+ *    ```
+ *
+ * 2. HASH-BASED CSP:
+ *    - Calculate SHA-256 hash of inline scripts
+ *    - Add 'sha256-{hash}' to script-src
+ *    - Works for static inline scripts only
+ *
+ * See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
  */
 export function getContentSecurityPolicy(): string {
   const policies = [
@@ -13,9 +46,11 @@ export function getContentSecurityPolicy(): string {
     "default-src 'self'",
 
     // Scripts: Allow self, inline scripts (for Next.js), and trusted CDNs
+    // TODO: Replace 'unsafe-inline' with nonce-based CSP for better security
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com",
 
     // Styles: Allow self, inline styles (for Tailwind), and Google Fonts
+    // TODO: Replace 'unsafe-inline' with nonce-based CSP for better security
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
 
     // Images: Allow self, data URIs, and common image CDNs
@@ -91,6 +126,17 @@ export function getSecurityHeaders(): HeadersInit {
  * Less strict CSP for API endpoints
  */
 export function getApiSecurityHeaders(): HeadersInit {
+  // CORS origin must be explicitly set, never use wildcard in production
+  const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL;
+
+  if (!allowedOrigin && process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'SECURITY ERROR: NEXT_PUBLIC_SITE_URL must be set in production. ' +
+      'Wildcard CORS (*) is not allowed for security reasons. ' +
+      'Set NEXT_PUBLIC_SITE_URL to your production domain.'
+    );
+  }
+
   return {
     // Basic security headers
     'X-Content-Type-Options': 'nosniff',
@@ -100,10 +146,12 @@ export function getApiSecurityHeaders(): HeadersInit {
     // Remove server information
     'X-Powered-By': '',
 
-    // CORS headers (if needed)
-    'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || '*',
+    // CORS headers - strict origin enforcement
+    // In development, allow localhost; in production, require explicit origin
+    'Access-Control-Allow-Origin': allowedOrigin || 'http://localhost:3000',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CSRF-Token',
+    'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Max-Age': '86400',
   };
 }

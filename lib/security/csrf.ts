@@ -4,6 +4,31 @@ import { randomBytes, createHash } from 'crypto';
 /**
  * CSRF (Cross-Site Request Forgery) Protection
  * Generates and validates tokens to prevent CSRF attacks
+ *
+ * ⚠️ PRODUCTION WARNING ⚠️
+ * This implementation uses in-memory storage which is NOT suitable for:
+ * - Serverless environments (Vercel, Netlify, AWS Lambda)
+ * - Multi-instance deployments (load-balanced servers)
+ * - Horizontal scaling scenarios
+ *
+ * Why this is a security concern:
+ * - CSRF tokens are stored per-instance, not shared across servers
+ * - Tokens will be lost on server restart or cold starts
+ * - Different instances cannot validate tokens created by other instances
+ * - This can lead to legitimate requests being rejected
+ *
+ * PRODUCTION SOLUTION:
+ * Use Redis or Vercel KV for distributed token storage:
+ * - Redis: Persistent, shared state with TTL support
+ * - Vercel KV: Built-in key-value store with automatic expiration
+ * - Upstash: Serverless Redis with REST API
+ *
+ * Example with Vercel KV:
+ * ```typescript
+ * import { kv } from '@vercel/kv';
+ * await kv.set(`csrf:${sessionId}`, token, { ex: 3600 }); // 1 hour expiry
+ * const storedToken = await kv.get(`csrf:${sessionId}`);
+ * ```
  */
 
 const CSRF_TOKEN_LENGTH = 32;
@@ -16,6 +41,18 @@ interface CsrfToken {
 
 // In-memory token store (use Redis in production for distributed systems)
 const tokenStore = new Map<string, CsrfToken>();
+
+// Show production warning once
+let warningShown = false;
+if (process.env.NODE_ENV === 'production' && !warningShown) {
+  console.warn(
+    '⚠️  SECURITY WARNING: In-memory CSRF token storage is active in production. ' +
+    'This is NOT suitable for serverless/multi-instance deployments. ' +
+    'Use Redis or Vercel KV for distributed token storage. ' +
+    'See lib/security/csrf.ts for details.'
+  );
+  warningShown = true;
+}
 
 /**
  * Generate a cryptographically secure random token

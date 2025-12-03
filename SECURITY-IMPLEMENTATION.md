@@ -46,8 +46,31 @@ Located in: `lib/security/rateLimit.ts`
 
 - **IP-based tracking** with User-Agent for accuracy
 - **Configurable limits** per endpoint
-- **In-memory storage** (Redis recommended for production)
-- **Automatic cleanup** of expired entries
+- **In-memory storage** with automatic cleanup
+- **Production warnings** for serverless deployments
+
+### ⚠️ Production Deployment Warning
+
+**CRITICAL**: The current implementation uses in-memory storage which is **NOT suitable** for:
+- Serverless environments (Vercel, Netlify, AWS Lambda)
+- Multi-instance deployments (load-balanced servers)
+- Horizontal scaling scenarios
+
+**Why this is a security concern:**
+- Each server instance maintains its own rate limit state
+- Attackers can bypass limits by distributing requests across instances
+- Rate limits reset on server restart or cold starts
+
+**Recommended Solution:**
+Migrate to Redis or Vercel KV for distributed rate limiting:
+```typescript
+// Example with Vercel KV
+import { kv } from '@vercel/kv';
+const count = await kv.incr(`ratelimit:${identifier}`);
+await kv.expire(`ratelimit:${identifier}`, windowSeconds);
+```
+
+See `lib/security/rateLimit.ts` for detailed migration guidance
 
 ### Rate Limit Configuration
 
@@ -106,7 +129,19 @@ Located in: `lib/security/validation.ts`
 ```typescript
 sanitizeHtml(input: string): string
 ```
-Removes `<script>`, event handlers, `javascript:` protocol, iframes, etc.
+**Uses DOMPurify** for robust, battle-tested XSS prevention. Configures allowlists for safe HTML tags and attributes.
+
+**Previous Implementation Issue**: Regex-based sanitization could be bypassed with various XSS techniques.
+
+**Current Implementation**: DOMPurify provides comprehensive protection against all known XSS vectors.
+
+#### Sanitize Markdown
+```typescript
+sanitizeMarkdown(content: string, maxLength?: number): string
+```
+**Uses DOMPurify** to sanitize embedded HTML within markdown content. Should be used on raw markdown BEFORE rendering.
+
+**Note**: After markdown is rendered to HTML by a library (marked/remark), pass the output through `sanitizeHtml()` or DOMPurify again for defense-in-depth.
 
 #### Validate Email
 ```typescript
@@ -123,11 +158,29 @@ Comprehensive validation with error messages and sanitized output.
 
 ### XSS Prevention Techniques
 
-1. **Remove script tags** and their content
-2. **Strip event handlers** (onclick, onerror, etc.)
-3. **Block dangerous protocols** (javascript:, data:)
-4. **Escape HTML characters** (&, <, >, ", ', /)
-5. **Validate markdown** while preserving formatting
+**Primary Defense: DOMPurify**
+The implementation uses `isomorphic-dompurify` for robust XSS prevention:
+
+1. **Allowlist-based filtering** - Only safe tags/attributes permitted
+2. **Protocol validation** - Blocks javascript:, data:, and other dangerous protocols
+3. **Event handler removal** - Strips onclick, onerror, etc.
+4. **Defense-in-depth** - Multiple layers of sanitization
+5. **Battle-tested library** - Used by major companies, regularly audited
+
+**Why DOMPurify over Regex:**
+- Regex sanitization can be bypassed (e.g., `<script>` variations, Unicode tricks)
+- DOMPurify uses browser's own HTML parser for accuracy
+- Actively maintained with new XSS vectors patched quickly
+- Supports both browser and Node.js environments (isomorphic)
+
+**Configuration Example:**
+```typescript
+DOMPurify.sanitize(input, {
+  ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'a'],
+  ALLOWED_ATTR: ['href', 'title'],
+  ALLOW_DATA_ATTR: false,
+});
+```
 
 ---
 
@@ -144,6 +197,30 @@ Located in: `lib/security/csrf.ts`
 - **Session-based** - Tied to user session
 - **Timing-safe comparison** - Prevents timing attacks
 - **Automatic cleanup** - Removes expired tokens
+
+### ⚠️ Production Deployment Warning
+
+**IMPORTANT**: The current implementation uses in-memory storage which is **NOT suitable** for:
+- Serverless environments (Vercel, Netlify, AWS Lambda)
+- Multi-instance deployments (load-balanced servers)
+- Horizontal scaling scenarios
+
+**Why this impacts security:**
+- CSRF tokens stored per-instance, not shared across servers
+- Tokens lost on server restart or cold starts
+- Different instances cannot validate tokens created by other instances
+- This leads to legitimate requests being rejected (user experience issue)
+
+**Recommended Solution:**
+Migrate to Redis or Vercel KV for distributed token storage:
+```typescript
+// Example with Vercel KV
+import { kv } from '@vercel/kv';
+await kv.set(`csrf:${sessionId}`, token, { ex: 3600 }); // 1 hour expiry
+const storedToken = await kv.get(`csrf:${sessionId}`);
+```
+
+See `lib/security/csrf.ts` for detailed migration guidance
 
 ### Usage
 
@@ -190,6 +267,46 @@ img-src 'self' data: https: http:;
 connect-src 'self' https://*.supabase.co wss://*.supabase.co;
 frame-ancestors 'none';
 ```
+
+**⚠️ Security Note**: The current CSP uses `'unsafe-inline'` and `'unsafe-eval'` for compatibility with:
+- Next.js runtime and hydration
+- Tailwind CSS inline styles
+- Google reCAPTCHA inline scripts
+
+These directives weaken XSS protection. **For stronger security**, consider implementing:
+
+**1. Nonce-Based CSP (Recommended for Next.js 13+)**
+```typescript
+// Generate unique nonce per request in middleware
+const nonce = crypto.randomBytes(16).toString('base64');
+request.headers.set('x-nonce', nonce);
+
+// Update CSP header
+script-src 'self' 'nonce-${nonce}' https://www.google.com
+
+// Add nonce to scripts in pages
+<script nonce={nonce}>...</script>
+```
+
+**2. Hash-Based CSP**
+- Calculate SHA-256 hash of inline scripts
+- Add `'sha256-{hash}'` to script-src
+- Works for static inline scripts only
+
+See `lib/security/headers.ts` for detailed implementation guidance.
+
+Reference: [Next.js CSP Guide](https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy)
+
+#### CORS Configuration
+
+**⚠️ Security Improvement**: CORS now requires explicit origin configuration in production.
+
+- **Production**: `NEXT_PUBLIC_SITE_URL` environment variable **must** be set
+- **Development**: Falls back to `http://localhost:3000`
+- **Security**: Wildcard (`*`) origins are **blocked** in production (throws error)
+- **Credentials**: CORS credentials enabled for authenticated requests
+
+This prevents CSRF attacks and unauthorized cross-origin access.
 
 #### HTTP Strict Transport Security (HSTS)
 ```
@@ -468,7 +585,28 @@ RECAPTCHA_SECRET_KEY=xxx
 
 # Formspree
 FORMSPREE_ENDPOINT=https://formspree.io/f/xxx
+
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
+
+### Required Dependencies
+
+**Security Dependencies:**
+```json
+{
+  "dependencies": {
+    "isomorphic-dompurify": "^2.16.0"
+  }
+}
+```
+
+**Install command:**
+```bash
+npm install isomorphic-dompurify
+```
+
+This package provides robust XSS protection through DOMPurify in both browser and Node.js environments
 
 ### Production Recommendations
 

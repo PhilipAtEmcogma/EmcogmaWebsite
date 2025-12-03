@@ -36,13 +36,48 @@ interface RateLimitEntry {
 
 /**
  * In-memory rate limit store
- * Note: In production, consider using Redis for distributed rate limiting
+ *
+ * ⚠️ PRODUCTION WARNING ⚠️
+ * This in-memory implementation is NOT suitable for production environments with:
+ * - Multiple server instances (serverless, load-balanced)
+ * - Horizontal scaling requirements
+ * - Vercel/Netlify deployments (each invocation has separate memory)
+ *
+ * Why this is a security concern:
+ * - Each server instance maintains its own rate limit state
+ * - Attackers can bypass limits by distributing requests across instances
+ * - Rate limits reset on server restart/cold starts
+ *
+ * PRODUCTION SOLUTION:
+ * Use Redis or Vercel KV for distributed rate limiting:
+ * - Redis: Shared state across all instances
+ * - Vercel KV: Built-in Vercel solution with automatic scaling
+ * - Upstash: Serverless Redis with REST API
+ *
+ * Example with Vercel KV:
+ * ```typescript
+ * import { kv } from '@vercel/kv';
+ * const count = await kv.incr(`ratelimit:${identifier}`);
+ * await kv.expire(`ratelimit:${identifier}`, windowSeconds);
+ * ```
  */
 class RateLimitStore {
   private store: Map<string, RateLimitEntry> = new Map();
   private cleanupInterval: NodeJS.Timeout;
+  private warningShown = false;
 
   constructor() {
+    // Show production warning once
+    if (process.env.NODE_ENV === 'production' && !this.warningShown) {
+      console.warn(
+        '⚠️  SECURITY WARNING: In-memory rate limiting is active in production. ' +
+        'This is NOT suitable for serverless/multi-instance deployments. ' +
+        'Use Redis or Vercel KV for distributed rate limiting. ' +
+        'See lib/security/rateLimit.ts for details.'
+      );
+      this.warningShown = true;
+    }
+
     // Cleanup expired entries every 5 minutes
     this.cleanupInterval = setInterval(() => {
       this.cleanup();

@@ -3,31 +3,26 @@
  * Prevents XSS, SQL injection, and other input-based attacks
  */
 
+import DOMPurify from 'isomorphic-dompurify';
+
 /**
  * Sanitize HTML to prevent XSS attacks
- * Removes dangerous tags and attributes
+ * Uses DOMPurify for robust, battle-tested sanitization
  */
 export function sanitizeHtml(input: string): string {
   if (!input) return '';
 
-  // Remove script tags and their content
-  let sanitized = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-
-  // Remove event handlers (onclick, onerror, etc.)
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
-
-  // Remove javascript: protocol
-  sanitized = sanitized.replace(/javascript:/gi, '');
-
-  // Remove data: protocol (can be used for XSS)
-  sanitized = sanitized.replace(/data:text\/html/gi, '');
-
-  // Remove iframe tags
-  sanitized = sanitized.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-
-  // Remove object and embed tags
-  sanitized = sanitized.replace(/<(object|embed)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/gi, '');
+  // Use DOMPurify for robust XSS prevention
+  // Configure to remove dangerous elements and attributes
+  const sanitized = DOMPurify.sanitize(input, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li',
+      'blockquote', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel'],
+    ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  });
 
   return sanitized.trim();
 }
@@ -179,6 +174,8 @@ export function validateSlug(slug: string): { valid: boolean; error?: string } {
 /**
  * Validate and sanitize markdown content
  * Allows markdown syntax but prevents XSS
+ * Note: This should be used on raw markdown BEFORE rendering to HTML
+ * After markdown is rendered to HTML, use sanitizeHtml() or DOMPurify
  */
 export function sanitizeMarkdown(content: string, maxLength: number = 50000): string {
   if (!content) return '';
@@ -190,14 +187,23 @@ export function sanitizeMarkdown(content: string, maxLength: number = 50000): st
     sanitized = sanitized.substring(0, maxLength);
   }
 
-  // Remove script tags
-  sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  // For markdown, we sanitize embedded HTML and dangerous patterns
+  // The markdown itself will be rendered by a library (like marked/remark)
+  // and then passed through DOMPurify for final HTML sanitization
 
-  // Remove event handlers in HTML tags within markdown
-  sanitized = sanitized.replace(/(<[^>]+\s)on\w+\s*=\s*["'][^"']*["']/gi, '$1');
-
-  // Remove javascript: protocol in links
-  sanitized = sanitized.replace(/\[([^\]]+)\]\(javascript:[^\)]*\)/gi, '[$1](#)');
+  // Use DOMPurify to sanitize any embedded HTML in the markdown
+  // This prevents <script> tags and event handlers in raw HTML within markdown
+  sanitized = DOMPurify.sanitize(sanitized, {
+    ALLOWED_TAGS: [
+      // Allow common markdown HTML tags
+      'p', 'br', 'strong', 'em', 'u', 'a', 'ul', 'ol', 'li',
+      'blockquote', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td', 'img', 'hr', 'div', 'span'
+    ],
+    ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'src', 'alt', 'class', 'id'],
+    ALLOW_DATA_ATTR: false,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  });
 
   return sanitized;
 }
