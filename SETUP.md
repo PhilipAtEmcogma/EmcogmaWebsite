@@ -171,10 +171,11 @@ In your Vercel project settings, add:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `ADMIN_EMAIL`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `RECAPTCHA_SECRET_KEY`
 - `SITE_URL` (your production URL)
+
+**Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in Supabase.
 
 ## Supabase Configuration
 
