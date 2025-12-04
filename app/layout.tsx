@@ -1,17 +1,22 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Rajdhani, Share_Tech_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+// Cyberpunk 2077 inspired fonts
+const rajdhani = Rajdhani({
+  variable: '--font-rajdhani',
+  weight: ['300', '400', '500', '600', '700'],
   subsets: ['latin'],
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const shareTechMono = Share_Tech_Mono({
+  variable: '--font-share-tech',
+  weight: ['400'],
   subsets: ['latin'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -42,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
+        className={`${rajdhani.variable} ${shareTechMono.variable} antialiased min-h-screen flex flex-col font-sans`}
       >
         <div className="cyber-grid-bg fixed inset-0 opacity-50 pointer-events-none" />
         <div className="relative z-10 flex flex-col min-h-screen">

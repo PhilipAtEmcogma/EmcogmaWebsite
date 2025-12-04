@@ -78,10 +78,9 @@ class RateLimitStore {
       this.warningShown = true;
     }
 
-    // Cleanup expired entries every 5 minutes
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 5 * 60 * 1000);
+    // Note: setInterval removed as it doesn't work in serverless environments.
+    // Cleanup happens inline during get() calls to prevent memory leaks.
+    this.cleanupInterval = null as any; // Keep property for compatibility
   }
 
   private cleanup() {
@@ -111,7 +110,9 @@ class RateLimitStore {
   }
 
   destroy(): void {
-    clearInterval(this.cleanupInterval);
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+    }
     this.clear();
   }
 }

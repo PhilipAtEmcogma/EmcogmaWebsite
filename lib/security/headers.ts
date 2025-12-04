@@ -3,94 +3,28 @@
  * Implements OWASP security best practices
  */
 
+import { getCSP, getFallbackCSP } from './csp';
+
 /**
  * Content Security Policy (CSP)
  * Prevents XSS and other code injection attacks
  *
- * ⚠️ SECURITY NOTE ⚠️
- * Current implementation uses 'unsafe-inline' and 'unsafe-eval' for compatibility with:
- * - Next.js runtime and hydration
- * - Tailwind CSS inline styles
- * - Google reCAPTCHA inline scripts
+ * This now supports nonce-based CSP for stronger security.
+ * Enable nonces by setting NEXT_PUBLIC_CSP_NONCE_ENABLED=true
  *
- * These directives weaken XSS protection. For stronger security, consider:
- *
- * 1. NONCE-BASED CSP (Recommended for Next.js 13+):
- *    - Generate unique nonce per request in middleware
- *    - Add nonce to <script> and <style> tags
- *    - Replace 'unsafe-inline' with 'nonce-{random}'
- *
- *    Example implementation:
- *    ```typescript
- *    // In middleware:
- *    const nonce = crypto.randomBytes(16).toString('base64');
- *    request.headers.set('x-nonce', nonce);
- *
- *    // In CSP:
- *    script-src 'self' 'nonce-${nonce}' https://www.google.com
- *
- *    // In pages:
- *    <script nonce={nonce}>...</script>
- *    ```
- *
- * 2. HASH-BASED CSP:
- *    - Calculate SHA-256 hash of inline scripts
- *    - Add 'sha256-{hash}' to script-src
- *    - Works for static inline scripts only
- *
- * See: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+ * @deprecated Use getSecurityHeaders() or getSecurityHeadersWithNonce() instead
  */
 export function getContentSecurityPolicy(): string {
-  const policies = [
-    // Default source
-    "default-src 'self'",
-
-    // Scripts: Allow self, inline scripts (for Next.js), and trusted CDNs
-    // TODO: Replace 'unsafe-inline' with nonce-based CSP for better security
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com",
-
-    // Styles: Allow self, inline styles (for Tailwind), and Google Fonts
-    // TODO: Replace 'unsafe-inline' with nonce-based CSP for better security
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-
-    // Images: Allow self, data URIs, and common image CDNs
-    "img-src 'self' data: https: http:",
-
-    // Fonts: Allow self and Google Fonts
-    "font-src 'self' data: https://fonts.gstatic.com",
-
-    // Connect: Allow self, Supabase, and Formspree
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://formspree.io https://www.google.com",
-
-    // Frame: Allow Google reCAPTCHA
-    "frame-src 'self' https://www.google.com",
-
-    // Object: Disallow plugins
-    "object-src 'none'",
-
-    // Base URI: Restrict to self
-    "base-uri 'self'",
-
-    // Form action: Restrict to self and trusted services
-    "form-action 'self' https://formspree.io",
-
-    // Frame ancestors: Prevent clickjacking
-    "frame-ancestors 'none'",
-
-    // Upgrade insecure requests
-    "upgrade-insecure-requests",
-  ];
-
-  return policies.join('; ');
+  return getFallbackCSP();
 }
 
 /**
- * Get all security headers
+ * Get all security headers with optional nonce for CSP
  */
-export function getSecurityHeaders(): HeadersInit {
+export function getSecurityHeaders(nonce?: string): HeadersInit {
   return {
-    // Content Security Policy
-    'Content-Security-Policy': getContentSecurityPolicy(),
+    // Content Security Policy (nonce-based if nonce provided)
+    'Content-Security-Policy': getCSP(nonce),
 
     // Strict Transport Security (HSTS)
     // Force HTTPS for 2 years, including subdomains

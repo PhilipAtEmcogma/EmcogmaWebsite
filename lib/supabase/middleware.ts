@@ -1,11 +1,18 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSecurityHeaders, getApiSecurityHeaders } from '@/lib/security/headers';
+import { generateNonce } from '@/lib/security/csp';
 
 export async function updateSession(request: NextRequest) {
+  // Generate nonce for CSP (if enabled)
+  const nonce = generateNonce();
+
   let supabaseResponse = NextResponse.next({
     request,
   });
+
+  // Store nonce in request headers for use in pages
+  supabaseResponse.headers.set('x-nonce', nonce);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -144,7 +151,7 @@ export async function updateSession(request: NextRequest) {
 
   // Apply security headers to all responses
   const isApiRoute = request.nextUrl.pathname.startsWith('/api');
-  const securityHeaders = isApiRoute ? getApiSecurityHeaders() : getSecurityHeaders();
+  const securityHeaders = isApiRoute ? getApiSecurityHeaders() : getSecurityHeaders(nonce);
 
   Object.entries(securityHeaders).forEach(([key, value]) => {
     if (value) {
