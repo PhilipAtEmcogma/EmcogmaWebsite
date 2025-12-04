@@ -12,7 +12,7 @@ import { useCrud } from './useCrud';
 import { CrudForm } from './CrudForm';
 import { CrudList } from './CrudList';
 import type { CrudConfig, CrudEntity } from './types';
-import { Button, Loading, EmptyState } from '@/components/ui';
+import { Button, Loading, EmptyState, useToast } from '@/components/ui';
 import { APP_CONFIG } from '@/lib/config';
 
 export interface CrudManagerProps<T extends CrudEntity> {
@@ -29,6 +29,7 @@ export function CrudManager<T extends CrudEntity>({
   config,
 }: CrudManagerProps<T>) {
   const crud = useCrud(config);
+  const { showToast } = useToast();
 
   const {
     items,
@@ -68,14 +69,15 @@ export function CrudManager<T extends CrudEntity>({
     }
 
     if (result.success) {
-      alert(
+      showToast(
         editingItem
           ? APP_CONFIG.ui.successMessages.updated
-          : APP_CONFIG.ui.successMessages.created
+          : APP_CONFIG.ui.successMessages.created,
+        'success'
       );
       resetForm();
     } else {
-      alert(result.error || 'Operation failed');
+      showToast(result.error || 'Operation failed', 'error');
     }
   };
 
@@ -90,9 +92,9 @@ export function CrudManager<T extends CrudEntity>({
     const result = await deleteItem(item.id);
 
     if (result.success) {
-      alert(APP_CONFIG.ui.successMessages.deleted);
+      showToast(APP_CONFIG.ui.successMessages.deleted, 'success');
     } else {
-      alert(result.error || 'Delete failed');
+      showToast(result.error || 'Delete failed', 'error');
     }
   };
 

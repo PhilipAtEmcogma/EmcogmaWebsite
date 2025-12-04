@@ -133,8 +133,23 @@ export function useCrud<T extends CrudEntity>(
   const updateItem = useCallback(
     async (id: string, data: Partial<T>): Promise<CrudResult<T>> => {
       try {
-        // Note: Validation for updates is optional since data is partial
-        // Schema validation is primarily for create operations
+        // Validate if updateSchema or schema is provided
+        const schemaToUse = config.updateSchema || config.schema;
+        if (schemaToUse) {
+          // For updates, use partial schema if only regular schema provided
+          const validationSchema = config.updateSchema
+            ? schemaToUse
+            : schemaToUse.partial();
+
+          const validation = validationSchema.safeParse({ ...data, id });
+          if (!validation.success) {
+            const firstError = validation.error.issues?.[0];
+            return {
+              success: false,
+              error: firstError?.message || 'Validation failed',
+            };
+          }
+        }
 
         const { data: updatedItem, error: updateError } = await supabase
           .from(config.tableName)

@@ -41,9 +41,15 @@ export interface CrudConfig<T extends CrudEntity> {
   fields: FieldConfig<T>[];
 
   /**
-   * Validation schema (Zod)
+   * Validation schema for create operations (Zod)
    */
   schema?: z.ZodType<any>;
+
+  /**
+   * Validation schema for update operations (Zod)
+   * If not provided, falls back to schema.partial()
+   */
+  updateSchema?: z.ZodType<any>;
 
   /**
    * Default form data for creation

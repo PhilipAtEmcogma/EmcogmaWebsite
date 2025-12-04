@@ -13,3 +13,4 @@ export { EmptyState } from './EmptyState';
 export { Card } from './Card';
 export { Badge, type BadgeProps } from './Badge';
 export { Modal } from './Modal';
+export { ToastProvider, useToast, type Toast, type ToastType } from './Toast';
