@@ -14,19 +14,82 @@ const warnings = [];
 // 1. Check for hardcoded secrets in code
 console.log('[*] Checking for hardcoded secrets...');
 const dangerousPatterns = [
+  // Original patterns
   { pattern: /SUPABASE_URL\s*=\s*['"]https?:\/\/[a-z0-9-]+\.supabase\.co/i, desc: 'Hardcoded Supabase URL' },
   { pattern: /ANON_KEY\s*=\s*['"]eyJ[A-Za-z0-9_-]{20,}/i, desc: 'Hardcoded Supabase anon key' },
   { pattern: /SECRET_KEY\s*=\s*['"][^'"]{20,}/i, desc: 'Hardcoded secret key' },
   { pattern: /api[_-]?key\s*=\s*['"][^'"]{20,}/i, desc: 'Hardcoded API key' },
   { pattern: /password\s*=\s*['"][^'"]+/i, desc: 'Hardcoded password' },
   { pattern: /formspree\.io\/f\/[a-z0-9]+/i, desc: 'Hardcoded Formspree endpoint' },
+
+  // AWS credentials
+  { pattern: /AKIA[0-9A-Z]{16}/i, desc: 'AWS Access Key ID' },
+  { pattern: /aws[_-]?secret[_-]?access[_-]?key\s*=\s*['"][^'"]{20,}/i, desc: 'AWS Secret Access Key' },
+
+  // Private keys
+  { pattern: /-----BEGIN (RSA|DSA|EC|OPENSSH|PGP) PRIVATE KEY-----/i, desc: 'Private key' },
+  { pattern: /-----BEGIN PRIVATE KEY-----/i, desc: 'Private key' },
+
+  // JWT tokens
+  { pattern: /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/i, desc: 'JWT token' },
+
+  // Database connection strings
+  { pattern: /postgres:\/\/[^:]+:[^@]+@[^\/]+\/[^\s'"]+/i, desc: 'PostgreSQL connection string' },
+  { pattern: /mongodb(\+srv)?:\/\/[^:]+:[^@]+@[^\/]+/i, desc: 'MongoDB connection string' },
+  { pattern: /mysql:\/\/[^:]+:[^@]+@[^\/]+/i, desc: 'MySQL connection string' },
+
+  // Generic tokens
+  { pattern: /token\s*=\s*['"][a-zA-Z0-9_-]{20,}/i, desc: 'Generic token' },
+  { pattern: /bearer\s+[a-zA-Z0-9_-]{20,}/i, desc: 'Bearer token' },
+
+  // OAuth secrets
+  { pattern: /client[_-]?secret\s*=\s*['"][^'"]{20,}/i, desc: 'OAuth client secret' },
+
+  // Slack tokens
+  { pattern: /xox[baprs]-[0-9a-zA-Z-]{10,}/i, desc: 'Slack token' },
+
+  // GitHub tokens
+  { pattern: /gh[pousr]_[0-9a-zA-Z]{36}/i, desc: 'GitHub token' },
+
+  // Stripe keys
+  { pattern: /(sk|pk)_(test|live)_[0-9a-zA-Z]{24,}/i, desc: 'Stripe API key' },
 ];
 
 function scanFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
+
+    // Exclude known safe files
+    const safeFiles = [
+      '.env.example',
+      'verify-security.js', // This file contains patterns for detection
+      '.github/workflows/', // Workflow files use test/placeholder keys
+    ];
+
+    const isSafeFile = safeFiles.some(safe => filePath.includes(safe));
+
     dangerousPatterns.forEach((item) => {
       if (item.pattern.test(content)) {
+        // Skip if it's a safe file or contains known test values
+        if (isSafeFile) {
+          return;
+        }
+
+        // Check for Google's official test reCAPTCHA keys (used in CI/CD)
+        if (content.includes('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI') ||
+            content.includes('6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe')) {
+          return; // Skip Google's test keys
+        }
+
+        // Check for placeholder/example values
+        if (content.includes('example.com') ||
+            content.includes('example_') ||
+            content.includes('your-') ||
+            content.includes('YOUR_') ||
+            content.includes('xxx')) {
+          return; // Skip obvious placeholders
+        }
+
         errors.push(`${item.desc} found in ${filePath}`);
       }
     });

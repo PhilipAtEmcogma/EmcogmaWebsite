@@ -1,10 +1,32 @@
 /**
  * Distributed rate limiting using Vercel KV
  * Production-ready implementation for serverless environments
+ * Falls back to in-memory rate limiting when KV is unavailable
  */
 
 import { kv } from '@vercel/kv';
 import { NextRequest } from 'next/server';
+
+/**
+ * In-memory fallback store for rate limiting
+ * Used when Vercel KV is unavailable
+ */
+interface FallbackEntry {
+  count: number;
+  resetTime: number;
+}
+
+const fallbackStore = new Map<string, FallbackEntry>();
+
+// Cleanup expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of fallbackStore.entries()) {
+    if (entry.resetTime < now) {
+      fallbackStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
 
 /**
  * Rate limit configuration for different endpoints
@@ -66,6 +88,59 @@ export function getClientIdentifier(request: NextRequest): string {
 }
 
 /**
+ * Fallback rate limiting using in-memory store
+ * Used when Vercel KV is unavailable
+ */
+function fallbackRateLimit(
+  identifier: string,
+  config: RateLimitConfig
+): RateLimitResult {
+  const now = Date.now();
+  const key = `fallback:${identifier}`;
+
+  const entry = fallbackStore.get(key);
+
+  if (!entry || entry.resetTime < now) {
+    // First request or expired window
+    fallbackStore.set(key, {
+      count: 1,
+      resetTime: now + config.windowMs,
+    });
+
+    return {
+      success: true,
+      limit: config.maxRequests,
+      remaining: config.maxRequests - 1,
+      reset: now + config.windowMs,
+    };
+  }
+
+  // Check if limit exceeded
+  if (entry.count >= config.maxRequests) {
+    const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
+
+    return {
+      success: false,
+      limit: config.maxRequests,
+      remaining: 0,
+      reset: entry.resetTime,
+      retryAfter,
+    };
+  }
+
+  // Increment count
+  entry.count++;
+  fallbackStore.set(key, entry);
+
+  return {
+    success: true,
+    limit: config.maxRequests,
+    remaining: config.maxRequests - entry.count,
+    reset: entry.resetTime,
+  };
+}
+
+/**
  * Apply rate limiting to a request using Vercel KV
  * @param identifier - Unique identifier for the client
  * @param config - Rate limit configuration
@@ -112,16 +187,11 @@ export async function rateLimit(
       reset: resetTime,
     };
   } catch (error) {
-    console.error('Rate limiting error:', error);
+    console.error('Rate limiting error (KV unavailable, using in-memory fallback):', error);
 
-    // Fallback: Allow request if KV is unavailable (fail-open)
-    // In production, you might want to fail-closed instead
-    return {
-      success: true,
-      limit: config.maxRequests,
-      remaining: config.maxRequests,
-      reset: Date.now() + config.windowMs,
-    };
+    // HYBRID FALLBACK: Use in-memory rate limiting when KV is unavailable
+    // This prevents fail-open security risk while maintaining functionality
+    return fallbackRateLimit(identifier, config);
   }
 }
 
@@ -188,12 +258,8 @@ export async function getRateLimitStatus(
       reset: resetTime,
     };
   } catch (error) {
-    console.error('Error getting rate limit status:', error);
-    return {
-      success: true,
-      limit: config.maxRequests,
-      remaining: config.maxRequests,
-      reset: Date.now() + config.windowMs,
-    };
+    console.error('Error getting rate limit status (KV unavailable, using fallback):', error);
+    // Use fallback to get accurate rate limit status
+    return fallbackRateLimit(identifier, config);
   }
 }

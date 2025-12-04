@@ -86,9 +86,15 @@ export function getFallbackCSP(): string {
 
 /**
  * Check if CSP nonces are enabled via environment variable
+ * Defaults to true in production for better security
  */
 export function isCspNonceEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_CSP_NONCE_ENABLED === 'true';
+  // Default to true in production unless explicitly disabled
+  if (process.env.NEXT_PUBLIC_CSP_NONCE_ENABLED === 'false') {
+    return false;
+  }
+  // Enable by default in production, or if explicitly enabled
+  return process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_CSP_NONCE_ENABLED === 'true';
 }
 
 /**
@@ -96,8 +102,15 @@ export function isCspNonceEnabled(): boolean {
  * @param nonce - Optional nonce (if nonces are enabled)
  */
 export function getCSP(nonce?: string): string {
-  if (isCspNonceEnabled() && nonce) {
+  // Use nonce-based CSP in production by default for better security
+  if (isCspNonceEnabled()) {
+    if (!nonce) {
+      // Generate a nonce if not provided (shouldn't happen, but fallback)
+      console.warn('CSP nonce requested but not provided, using fallback CSP');
+      return getFallbackCSP();
+    }
     return getNonceCSP(nonce);
   }
+  // Development or explicitly disabled: use fallback with unsafe-inline
   return getFallbackCSP();
 }
