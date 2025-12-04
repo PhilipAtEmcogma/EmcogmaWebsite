@@ -17,12 +17,14 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 - **Comments System** - Moderation workflow (submit for approval, approved comments display)
 - **Contact Form** - Google reCAPTCHA v2 verification + Formspree email delivery
 - **SaaS Landing** - Complete product page with pricing, features, testimonials, FAQ
+- **Admin Portal** - Full CRUD for all content types with OAuth authentication
 
 ### Technical Highlights
 - **SEO Optimized** - Auto-generated sitemap, robots.txt, Open Graph tags, PWA manifest
 - **Performance** - ISR (60s revalidation), static generation, Next.js Image optimization
 - **Security** - OWASP Top 10 2021 compliant (A-grade), distributed rate limiting & CSRF (Vercel KV), nonce-based CSP, automated dependency scanning, CI/CD security pipeline
 - **Responsive** - Mobile-first design, sticky navigation, adaptive layouts
+- **🎉 Modern Architecture** - Generic CRUD system, centralized types, reusable components (see [Architecture](#-architecture))
 
 ## 🚀 Quick Start
 
@@ -98,58 +100,56 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000)
 
+## 🏗️ Architecture
+
+This project follows **industry best practices** with a modern, modular architecture:
+
+### Key Systems
+- **Generic CRUD** ([lib/crud/](lib/crud/)) - Reusable CRUD system reduces admin code by 95%
+- **Centralized Types** ([lib/types/](lib/types/)) - Single source of truth for all types
+- **Configuration Layer** ([lib/config/](lib/config/)) - No hardcoded values
+- **UI Components** ([components/ui/](components/ui/)) - 8 reusable cyberpunk-themed components
+- **Validation** ([lib/validation/](lib/validation/)) - Zod schemas shared client/server
+- **Error Handling** ([lib/errors/](lib/errors/)) - Consistent error management
+
+### Benefits
+- **95% less code** in admin managers (326 → 16 lines each)
+- **5-minute setup** for new content types
+- **Single source of truth** for types and validation
+- **Consistent UI/UX** across all managers
+- **Type-safe** end-to-end
+
+📖 **Read more:** [ARCHITECTURE.md](ARCHITECTURE.md) | [REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md) | [PHASE-3-COMPLETE.md](PHASE-3-COMPLETE.md)
+
 ## 📂 Project Structure
 
 ```
 app/
-├── api/
-│   ├── comments/route.ts       # Comments API (Supabase)
-│   └── contact/route.ts        # Contact + reCAPTCHA
-├── blog/
-│   ├── page.tsx                # Blog listing (ISR)
-│   └── [slug]/page.tsx         # Post detail (SSG)
-├── portfolio/page.tsx          # Projects (ISR)
-├── contact/page.tsx            # Contact form
-├── saas/page.tsx               # SaaS landing
-└── page.tsx                    # Home
+├── api/                        # API routes
+├── blog/                       # Blog pages (ISR + SSG)
+├── portfolio/                  # Projects page
+├── admin/                      # Admin portal
+└── ...
 
 components/
+├── ui/                         # ✨ Reusable UI components (Button, Input, etc.)
+├── admin/
+│   ├── config/                 # ✨ CRUD configurations (field definitions)
+│   └── *Manager.tsx            # ✨ REFACTORED: 16 lines each (was 326+)
 ├── blog/
-│   ├── CommentSection.tsx      # Comments with Supabase
-│   └── ShareButtons.tsx        # Social sharing
 ├── contact/
-│   ├── ContactForm.tsx         # Form + API integration
-│   └── ReCaptchaWrapper.tsx    # reCAPTCHA widget
-├── home/                       # Hero, FeaturedProjects, etc.
-├── saas/                       # Features, Pricing, etc.
-└── layout/                     # Header, Footer
+└── ...
 
 lib/
-├── auth/
-│   └── admin.ts                        # Admin auth utilities (database queries)
-├── security/
-│   ├── index.ts                        # Centralized security exports
-│   ├── rateLimitDistributed.ts        # PRODUCTION: Distributed rate limiting (Vercel KV)
-│   ├── csrfDistributed.ts             # PRODUCTION: Distributed CSRF (Vercel KV)
-│   ├── csp.ts                         # Nonce-based CSP implementation
-│   ├── rateLimit.ts                   # LEGACY: In-memory rate limiting (dev/fallback)
-│   ├── csrf.ts                        # LEGACY: In-memory CSRF (dev/fallback)
-│   ├── validation.ts                  # Input validation & sanitization
-│   ├── headers.ts                     # Security headers
-│   └── logger.ts                      # Security logging
-└── supabase/
-    ├── client.ts                       # Client-side Supabase
-    ├── server.ts                       # Server-side with static client for build-time
-    ├── middleware.ts                   # Session timeout, admin protection, nonce generation
-    └── schema.sql                      # Secure database schema with admin_users table
-
-.github/
-├── dependabot.yml                      # Automated dependency updates
-└── workflows/
-    └── security.yml                    # CI/CD security scanning pipeline
-
-verify-security.js                      # Pre-commit security verification script
-proxy.ts                                # Next.js 16 middleware entry point
+├── types/                      # ✨ Centralized type system
+├── config/                     # ✨ Configuration constants
+├── utils/                      # ✨ Utility functions
+├── validation/                 # ✨ Zod validation schemas
+├── crud/                       # ✨ Generic CRUD system
+├── errors/                     # ✨ Error handling
+├── auth/                       # Admin authentication
+├── security/                   # Security implementation
+└── supabase/                   # Database client & schema
 ```
 
 ## 🗄️ Database Schema
