@@ -150,7 +150,7 @@ jobs:
       - name: Check licenses
         run: |
           npx license-checker --summary --production \
-            --onlyAllow 'MIT;ISC;BSD;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;Unlicense;WTFPL;LGPL-3.0-or-later'
+            --onlyAllow 'MIT;ISC;BSD;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;Unlicense;WTFPL;LGPL-3.0-or-later;CC-BY-4.0'
 
   security-summary:
     name: Security Summary
