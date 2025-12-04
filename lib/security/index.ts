@@ -3,7 +3,7 @@
  * Import all security features from one place
  */
 
-// Rate limiting
+// Rate limiting - Distributed (Production - Vercel KV)
 export {
   type RateLimitConfig,
   type RateLimitResult,
@@ -12,6 +12,12 @@ export {
   rateLimit,
   checkRateLimit,
   createRateLimitHeaders,
+  clearRateLimit,
+  getRateLimitStatus,
+} from './rateLimitDistributed';
+
+// Rate limiting - In-Memory (Development/Fallback)
+export {
   clearRateLimits,
   destroyRateLimitStore,
 } from './rateLimit';
@@ -33,7 +39,7 @@ export {
   type ValidationResult,
 } from './validation';
 
-// CSRF protection
+// CSRF protection - Distributed (Production - Vercel KV)
 export {
   generateCsrfToken,
   createCsrfToken,
@@ -44,8 +50,9 @@ export {
   clearCsrfToken,
   getOrCreateCsrfToken,
   shouldExcludePath,
+  refreshCsrfToken,
   type CsrfConfig,
-} from './csrf';
+} from './csrfDistributed';
 
 // Security headers
 export {
@@ -74,8 +81,8 @@ export {
  * Combines rate limiting, CSRF, and input validation
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit, createRateLimitHeaders, type RateLimitConfig } from './rateLimit';
-import { validateCsrfRequest } from './csrf';
+import { checkRateLimit, createRateLimitHeaders, type RateLimitConfig } from './rateLimitDistributed';
+import { validateCsrfRequest } from './csrfDistributed';
 import { getRequestContext, SecurityLog } from './logger';
 
 export interface SecurityCheckOptions {
@@ -102,7 +109,7 @@ export async function performSecurityCheck(
 
   // Check rate limit
   if (options.rateLimit) {
-    const rateLimitResult = checkRateLimit(request, options.rateLimit);
+    const rateLimitResult = await checkRateLimit(request, options.rateLimit);
 
     if (!rateLimitResult.success) {
       SecurityLog.rateLimitExceeded(context, rateLimitResult.limit);
@@ -127,7 +134,7 @@ export async function performSecurityCheck(
   if (options.requireCsrf && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
     try {
       const body = await request.clone().json();
-      const isValidCsrf = validateCsrfRequest(request, body);
+      const isValidCsrf = await validateCsrfRequest(request, body);
 
       if (!isValidCsrf) {
         SecurityLog.csrfTokenInvalid(context);
