@@ -18,15 +18,9 @@ interface FallbackEntry {
 
 const fallbackStore = new Map<string, FallbackEntry>();
 
-// Cleanup expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of fallbackStore.entries()) {
-    if (entry.resetTime < now) {
-      fallbackStore.delete(key);
-    }
-  }
-}, 5 * 60 * 1000);
+// Note: No setInterval cleanup needed in serverless environments.
+// Vercel KV handles expiry automatically, and in-memory fallback is temporary.
+// Cleanup happens inline during rate limit checks to avoid memory leaks.
 
 /**
  * Rate limit configuration for different endpoints
@@ -97,6 +91,14 @@ function fallbackRateLimit(
 ): RateLimitResult {
   const now = Date.now();
   const key = `fallback:${identifier}`;
+
+  // Inline cleanup of expired entries to prevent memory leaks
+  // This is more efficient than setInterval in serverless environments
+  for (const [k, e] of fallbackStore.entries()) {
+    if (e.resetTime < now) {
+      fallbackStore.delete(k);
+    }
+  }
 
   const entry = fallbackStore.get(key);
 
