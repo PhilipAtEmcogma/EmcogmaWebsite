@@ -42,14 +42,15 @@ export interface CrudConfig<T extends CrudEntity> {
 
   /**
    * Validation schema for create operations (Zod)
+   * Must be a ZodObject to support .partial() for updates
    */
-  schema?: z.ZodType<any>;
+  schema?: z.ZodObject<any>;
 
   /**
    * Validation schema for update operations (Zod)
    * If not provided, falls back to schema.partial()
    */
-  updateSchema?: z.ZodType<any>;
+  updateSchema?: z.ZodObject<any>;
 
   /**
    * Default form data for creation
