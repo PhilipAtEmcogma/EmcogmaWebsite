@@ -7,12 +7,12 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCrud } from './useCrud';
 import { CrudForm } from './CrudForm';
 import { CrudList } from './CrudList';
 import type { CrudConfig, CrudEntity } from './types';
-import { Button, Loading, EmptyState, useToast } from '@/components/ui';
+import { Button, Loading, EmptyState, useToast, Modal } from '@/components/ui';
 import { APP_CONFIG } from '@/lib/config';
 
 export interface CrudManagerProps<T extends CrudEntity> {
@@ -30,6 +30,7 @@ export function CrudManager<T extends CrudEntity>({
 }: CrudManagerProps<T>) {
   const crud = useCrud(config);
   const { showToast } = useToast();
+  const [deleteConfirm, setDeleteConfirm] = useState<T | null>(null);
 
   const {
     items,
@@ -84,18 +85,25 @@ export function CrudManager<T extends CrudEntity>({
   /**
    * Handle delete with confirmation
    */
-  const handleDelete = async (item: T) => {
-    if (!confirm(`Are you sure you want to delete this ${config.displayName.slice(0, -1)}?`)) {
-      return;
-    }
+  const handleDelete = (item: T) => {
+    setDeleteConfirm(item);
+  };
 
-    const result = await deleteItem(item.id);
+  /**
+   * Confirm and execute delete
+   */
+  const handleDeleteConfirmed = async () => {
+    if (!deleteConfirm) return;
+
+    const result = await deleteItem(deleteConfirm.id);
 
     if (result.success) {
       showToast(APP_CONFIG.ui.successMessages.deleted, 'success');
     } else {
       showToast(result.error || 'Delete failed', 'error');
     }
+
+    setDeleteConfirm(null);
   };
 
   if (loading && items.length === 0) {
@@ -183,6 +191,32 @@ export function CrudManager<T extends CrudEntity>({
           )}
         </>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Confirm Delete"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Are you sure you want to delete this {config.displayName.slice(0, -1)}?
+            This action cannot be undone.
+          </p>
+          <div className="flex gap-3 justify-end">
+            <Button
+              onClick={() => setDeleteConfirm(null)}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteConfirmed} variant="danger">
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

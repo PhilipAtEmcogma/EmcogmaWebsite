@@ -38,10 +38,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback(
     (message: string, type: ToastType = 'info', duration: number = 4000) => {
-      const id = Math.random().toString(36).substring(2, 9);
+      // Use crypto.randomUUID for better ID generation
+      const id = crypto.randomUUID();
       const newToast: Toast = { id, message, type, duration };
 
-      setToasts((prev) => [...prev, newToast]);
+      setToasts((prev) => {
+        // Limit to 5 toasts max to prevent screen clutter
+        const updated = [...prev, newToast];
+        return updated.slice(-5);
+      });
 
       // Auto-dismiss
       if (duration > 0) {
