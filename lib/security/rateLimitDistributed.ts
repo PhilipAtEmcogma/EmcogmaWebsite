@@ -46,6 +46,13 @@ export const RATE_LIMITS = {
   // Auth endpoints
   login: { maxRequests: 5, windowMs: 15 * 60 * 1000 }, // 5 attempts per 15 minutes
 
+  // Data export endpoints (stricter limits to prevent abuse)
+  export: {
+    maxRequests: 3,
+    windowMs: 60 * 60 * 1000, // 3 exports per hour
+    message: 'Too many export requests. Please try again in an hour.',
+  },
+
   // General endpoints
   strict: { maxRequests: 30, windowMs: 60 * 1000 }, // 30 requests per minute
   moderate: { maxRequests: 100, windowMs: 60 * 1000 }, // 100 requests per minute

@@ -30,6 +30,27 @@ export class AppError extends Error {
       details: this.details,
     };
   }
+
+  /**
+   * Safe version for logging that redacts sensitive data in production
+   */
+  toSafeJSON() {
+    // In development, return full details for debugging
+    if (process.env.NODE_ENV === 'development') {
+      return this.toJSON();
+    }
+
+    // In production, redact details to prevent sensitive data exposure
+    return {
+      name: this.name,
+      code: this.code,
+      statusCode: this.statusCode,
+      // Only include userMessage, not the internal message
+      userMessage: this.userMessage,
+      // Redact details in production logs
+      details: this.details ? '[REDACTED]' : undefined,
+    };
+  }
 }
 
 /**

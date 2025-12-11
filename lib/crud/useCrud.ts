@@ -76,7 +76,12 @@ export function useCrud<T extends CrudEntity>(
 
       setItems((data as unknown as T[]) || []);
     } catch (err: any) {
-      console.error(`Error fetching ${config.displayName}:`, err);
+      // Only log error details in development to avoid exposing sensitive data
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`Error fetching ${config.displayName}:`, err);
+      } else {
+        console.error(`Error fetching ${config.displayName}:`, err.message || 'Unknown error');
+      }
       setError(err.message || `Failed to fetch ${config.displayName}`);
     } finally {
       setLoading(false);
@@ -117,7 +122,12 @@ export function useCrud<T extends CrudEntity>(
           data: newItem as T,
         };
       } catch (err: any) {
-        console.error(`Error creating ${config.displayName}:`, err);
+        // Only log error details in development to avoid exposing sensitive data
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Error creating ${config.displayName}:`, err);
+        } else {
+          console.error(`Error creating ${config.displayName}:`, err.message || 'Unknown error');
+        }
         return {
           success: false,
           error: err.message || `Failed to create ${config.displayName}`,
@@ -168,7 +178,12 @@ export function useCrud<T extends CrudEntity>(
           data: updatedItem as T,
         };
       } catch (err: any) {
-        console.error(`Error updating ${config.displayName}:`, err);
+        // Only log error details in development to avoid exposing sensitive data
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Error updating ${config.displayName}:`, err);
+        } else {
+          console.error(`Error updating ${config.displayName}:`, err.message || 'Unknown error');
+        }
         return {
           success: false,
           error: err.message || `Failed to update ${config.displayName}`,
@@ -196,7 +211,12 @@ export function useCrud<T extends CrudEntity>(
 
         return { success: true };
       } catch (err: any) {
-        console.error(`Error deleting ${config.displayName}:`, err);
+        // Only log error details in development to avoid exposing sensitive data
+        if (process.env.NODE_ENV === 'development') {
+          console.error(`Error deleting ${config.displayName}:`, err);
+        } else {
+          console.error(`Error deleting ${config.displayName}:`, err.message || 'Unknown error');
+        }
         return {
           success: false,
           error: err.message || `Failed to delete ${config.displayName}`,

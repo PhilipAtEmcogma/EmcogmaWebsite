@@ -10,3 +10,5 @@ export { articlesConfig } from './articlesConfig';
 export { productsConfig } from './productsConfig';
 export { demosConfig } from './demosConfig';
 export { commentsConfig } from './commentsConfig';
+export { subscribersConfig } from './subscribersConfig';
+export { contactSubmissionsConfig } from './contactSubmissionsConfig';

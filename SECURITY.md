@@ -322,6 +322,76 @@ Logs are available in development console and can be integrated with monitoring 
 
 **Implementation:** [lib/security/logger.ts](lib/security/logger.ts)
 
+### Secure Logging Practices
+
+**Critical Rule: NEVER log sensitive data in production logs**
+
+#### ❌ NEVER Log
+- **OAuth codes, tokens, or access keys** - Can be used to impersonate users
+- **Full URLs with query parameters** - May contain sensitive data (use `redactSensitiveData()`)
+- **Session IDs or cookies** - Exposes user sessions
+- **Passwords or secrets** - Even hashed ones
+- **API keys or authorization headers** - Security credentials
+- **Email addresses** - Personal Identifiable Information (PII)
+- **IP addresses** - Sensitive in some jurisdictions (GDPR)
+- **Credit card or payment info** - PCI-DSS violation
+- **Full error objects from auth providers** - May contain tokens
+
+#### ✅ DO Log (Safely)
+- **Redacted URLs** - Use `logSecureUrl()` or `redactSensitiveData()`
+- **Event types** - "Login successful", "Rate limit exceeded"
+- **Sanitized error messages** - Generic messages, not full stack traces with data
+- **Boolean flags** - "Token present: true", not the actual token
+- **Request metadata** - Method, path (without params), timestamp
+- **Security event types and severity** - For monitoring and alerting
+
+#### Using Secure Logging Utilities
+
+```typescript
+import { logSecureUrl, redactSensitiveData } from '@/lib/security/logger';
+
+// ❌ WRONG - Logs OAuth code
+console.log('Callback URL:', request.url);
+
+// ✅ CORRECT - Redacts sensitive params
+logSecureUrl('Callback URL', request.url);
+// Output: Callback URL: http://localhost:3000/auth/callback?code=[REDACTED]&next=%2Fadmin
+
+// ✅ CORRECT - Redact objects with sensitive data
+const data = {
+  user: 'john@example.com',
+  token: 'abc123',
+  access_token: 'xyz789',
+  name: 'John'
+};
+console.log('Data:', redactSensitiveData(data));
+// Output: Data: { user: 'john@example.com', token: '[REDACTED]', access_token: '[REDACTED]', name: 'John' }
+```
+
+#### Environment-Aware Logging
+
+```typescript
+// Development: More verbose logging for debugging
+if (process.env.NODE_ENV === 'development') {
+  console.log('Code present:', !!code);
+  console.error('OAuth error details:', error);
+}
+
+// Production: Minimal, redacted logging
+if (process.env.NODE_ENV === 'production') {
+  // Only log critical events via security logger
+  logSecurityEvent(...);
+}
+```
+
+#### Compliance Considerations
+- **GDPR/CCPA**: Email addresses and IP addresses are PII - minimize logging
+- **PCI-DSS**: Never log full credit card numbers or CVVs
+- **HIPAA**: Never log protected health information (PHI)
+- **SOC 2**: Implement log retention policies and access controls
+
+**See [app/auth/callback/route.ts](app/auth/callback/route.ts) for implementation examples.**
+
 ## 🔒 Input Validation & Constraints
 
 ### Email Validation
@@ -475,6 +545,7 @@ If you suspect a security breach:
 - [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md) - Comprehensive implementation guide
 - [SECURITY-POLICY.md](SECURITY-POLICY.md) - OWASP-grade security policy
 - [SECURITY-MIGRATION-GUIDE.md](SECURITY-MIGRATION-GUIDE.md) - Production deployment guide
+- [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) - **NEW:** Sensitive data exposure audit (Dec 2025)
 - [ATTACK-SURFACE-CHECKLIST.md](ATTACK-SURFACE-CHECKLIST.md) - Comprehensive threat analysis
 - [SECURITY-SCANNING-PIPELINE.md](SECURITY-SCANNING-PIPELINE.md) - Automated scanning setup
 - [SECURITY-AUDIT-SUMMARY.md](SECURITY-AUDIT-SUMMARY.md) - Audit findings & recommendations

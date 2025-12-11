@@ -28,22 +28,6 @@ export default function CTASection() {
               Get in Touch
             </a>
           </div>
-
-          {/* Stats or highlights */}
-          <div className="grid grid-cols-3 gap-8 mt-12 pt-12 border-t border-cyber-primary/20">
-            <div>
-              <div className="text-3xl md:text-4xl font-bold font-mono neon-text mb-2">50+</div>
-              <div className="text-foreground/60 text-sm">Projects Completed</div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-bold font-mono neon-text-pink mb-2">100k+</div>
-              <div className="text-foreground/60 text-sm">Lines of Code</div>
-            </div>
-            <div>
-              <div className="text-3xl md:text-4xl font-bold font-mono neon-text-green mb-2">5+</div>
-              <div className="text-foreground/60 text-sm">Years Experience</div>
-            </div>
-          </div>
         </div>
       </div>
     </section>

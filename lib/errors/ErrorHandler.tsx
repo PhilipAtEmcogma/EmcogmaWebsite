@@ -62,9 +62,9 @@ export function useErrorHandler(options: ErrorHandlerOptions = {}) {
         );
       }
 
-      // Log error
+      // Log error (uses safe logging to avoid exposing sensitive data in production)
       if (logError) {
-        console.error('[ErrorHandler]', appError.toJSON());
+        console.error('[ErrorHandler]', appError.toSafeJSON());
       }
 
       // Show user-friendly message
@@ -130,7 +130,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ErrorBoundary]', error, errorInfo);
+    // Only log full error details in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[ErrorBoundary]', error, errorInfo);
+    } else {
+      // In production, log minimal info to avoid exposing sensitive data
+      console.error('[ErrorBoundary]', {
+        name: error.name,
+        message: 'An error occurred',
+        code: error instanceof AppError ? error.code : 'UNKNOWN_ERROR',
+      });
+    }
   }
 
   reset = () => {
@@ -143,13 +153,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback(this.state.error, this.reset);
       }
 
+      // Get user-friendly message
+      const displayMessage = this.state.error instanceof AppError
+        ? this.state.error.userMessage || 'An unexpected error occurred. Please try again.'
+        : 'An unexpected error occurred. Please try again.';
+
       return (
         <div className="min-h-screen flex items-center justify-center bg-cyber-dark">
           <div className="max-w-md p-8 bg-cyber-darker border border-red-500/30 rounded-lg text-center">
             <h1 className="text-2xl font-bold text-red-400 mb-4">
               Something went wrong
             </h1>
-            <p className="text-gray-400 mb-6">{this.state.error.message}</p>
+            <p className="text-gray-400 mb-6">{displayMessage}</p>
             <button
               onClick={this.reset}
               className="btn-cyber px-6 py-2 bg-cyber-primary text-cyber-dark"
