@@ -201,6 +201,33 @@ export const subscriberSchema = z.object({
   subscribed: z.boolean().default(true),
 });
 
+export const createSubscriberSchema = subscriberSchema;
+export const updateSubscriberSchema = subscriberSchema.partial().extend({
+  id: z.string().uuid(),
+});
+
+/**
+ * Contact Submission Schema
+ */
+export const contactSubmissionSchema = z.object({
+  name: z
+    .string()
+    .min(VALIDATION_RULES.contact.name.min, 'Name is too short')
+    .max(VALIDATION_RULES.contact.name.max, 'Name is too long'),
+  email: emailSchema,
+  subject: z.string().max(200, 'Subject is too long').optional(),
+  message: z
+    .string()
+    .min(VALIDATION_RULES.contact.message.min, 'Message is too short')
+    .max(VALIDATION_RULES.contact.message.max, 'Message is too long'),
+  read: z.boolean().default(false),
+});
+
+export const createContactSubmissionSchema = contactSubmissionSchema.omit({ read: true });
+export const updateContactSubmissionSchema = contactSubmissionSchema.partial().extend({
+  id: z.string().uuid(),
+});
+
 /**
  * Type exports (infer from schemas)
  */
@@ -212,3 +239,4 @@ export type DemoInput = z.infer<typeof demoSchema>;
 export type CommentInput = z.infer<typeof commentSchema>;
 export type ContactFormInput = z.infer<typeof contactFormSchema>;
 export type SubscriberInput = z.infer<typeof subscriberSchema>;
+export type ContactSubmissionInput = z.infer<typeof contactSubmissionSchema>;

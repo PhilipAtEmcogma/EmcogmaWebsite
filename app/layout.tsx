@@ -20,21 +20,22 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Emcogma - Cyberpunk Innovation',
+  title: 'Emcogma',
   description: 'Personal brand site showcasing SaaS products, blog posts, and portfolio projects with a cyberpunk aesthetic.',
   keywords: ['developer', 'blog', 'portfolio', 'SaaS', 'technology', 'cyberpunk'],
   authors: [{ name: 'Emcogma' }],
+  manifest: '/manifest.json',
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://emcogma.com',
     siteName: 'Emcogma',
-    title: 'Emcogma - Cyberpunk Innovation',
+    title: 'Emcogma',
     description: 'Personal brand site showcasing SaaS products, blog posts, and portfolio projects.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Emcogma - Cyberpunk Innovation',
+    title: 'Emcogma',
     description: 'Personal brand site showcasing SaaS products, blog posts, and portfolio projects.',
   },
 };

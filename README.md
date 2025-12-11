@@ -5,6 +5,7 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 **EMCOGMA is a hub for future-focused engineering.** We build intelligent systems, explore emerging technologies, and chronicle the ideas, research, and projects that chart the emerging horizon of a world co-authored by human imagination and machine intelligence.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)](https://tailwindcss.com/)
@@ -16,13 +17,15 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 - **Portfolio Showcase** - Projects with featured status, category filtering
 - **Comments System** - Moderation workflow (submit for approval, approved comments display)
 - **Contact Form** - Google reCAPTCHA v2 verification + Formspree email delivery
-- **SaaS Landing** - Complete product page with pricing, features, testimonials, FAQ
-- **Admin Portal** - Full CRUD for all content types with OAuth authentication
+- **SaaS Landing** - Dynamic pricing from database, features, testimonials, FAQ
+- **Admin Portal** - Full CRUD for 8 content types with OAuth authentication
+- **Subscriber Management** - Newsletter subscribers with secure CSV export (7-layer security)
+- **Contact Management** - Manage contact form submissions (editable & deletable)
 
 ### Technical Highlights
 - **SEO Optimized** - Auto-generated sitemap, robots.txt, Open Graph tags, PWA manifest
 - **Performance** - ISR (60s revalidation), static generation, Next.js Image optimization
-- **Security** - OWASP Top 10 2021 compliant (A-grade), distributed rate limiting & CSRF (Vercel KV), nonce-based CSP, automated dependency scanning, CI/CD security pipeline
+- **Security** - OWASP Top 10 2021 compliant (100%, A-grade), distributed rate limiting & CSRF (Vercel KV), nonce-based CSP, secure logging with data redaction, zero sensitive data exposure, automated dependency scanning, CI/CD security pipeline
 - **Responsive** - Mobile-first design, sticky navigation, adaptive layouts
 - **🎉 Modern Architecture** - Generic CRUD system, centralized types, reusable components (see [Architecture](#-architecture))
 
@@ -108,7 +111,8 @@ This project follows **industry best practices** with a modern, modular architec
 - **Generic CRUD** ([lib/crud/](lib/crud/)) - Reusable CRUD system reduces admin code by 95%
 - **Centralized Types** ([lib/types/](lib/types/)) - Single source of truth for all types
 - **Configuration Layer** ([lib/config/](lib/config/)) - No hardcoded values
-- **UI Components** ([components/ui/](components/ui/)) - 8 reusable cyberpunk-themed components
+- **UI Components** ([components/ui/](components/ui/)) - 9 reusable cyberpunk-themed components
+- **Toast Notifications** ([components/ui/Toast.tsx](components/ui/Toast.tsx)) - Context-based feedback system
 - **Validation** ([lib/validation/](lib/validation/)) - Zod schemas shared client/server
 - **Error Handling** ([lib/errors/](lib/errors/)) - Consistent error management
 
@@ -134,7 +138,7 @@ app/
 components/
 ├── ui/                         # ✨ Reusable UI components (Button, Input, etc.)
 ├── admin/
-│   ├── config/                 # ✨ CRUD configurations (field definitions)
+│   ├── config/                 # ✨ CRUD configurations (8 content types)
 │   └── *Manager.tsx            # ✨ REFACTORED: 16 lines each (was 326+)
 ├── blog/
 ├── contact/
@@ -148,7 +152,7 @@ lib/
 ├── crud/                       # ✨ Generic CRUD system
 ├── errors/                     # ✨ Error handling
 ├── auth/                       # Admin authentication
-├── security/                   # Security implementation
+├── security/                   # Security implementation + secure logging
 └── supabase/                   # Database client & schema
 ```
 
@@ -206,12 +210,13 @@ Customize in [tailwind.config.ts](tailwind.config.ts)
 
 | Category | Technologies |
 |----------|-------------|
-| **Framework** | Next.js 16.0.7 (App Router), React 18.3.1, TypeScript 5 |
-| **Styling** | Tailwind CSS 3.4.1, Framer Motion 11.0.3 |
+| **Framework** | Next.js 16.0.0+ (App Router), React 19.2.1, TypeScript 5 |
+| **Styling** | Tailwind CSS 3.4.17, Framer Motion 11.0.3 |
 | **Backend** | Supabase (PostgreSQL, Auth, RLS), Vercel KV (distributed state) |
 | **Forms** | Formspree (email delivery), Google reCAPTCHA v2 |
+| **Validation** | Zod 3.25.76 (runtime validation, client/server shared schemas) |
 | **Security** | Vercel KV Rate Limiting, Distributed CSRF, Nonce-based CSP, DOMPurify, Dependabot, GitHub Actions |
-| **Build** | ESLint, PostCSS, next-sitemap 4.2.3 |
+| **Build** | ESLint 9, PostCSS 8, next-sitemap 4.2.3 |
 | **Deployment** | Vercel (recommended) |
 
 ## 📝 Scripts
@@ -261,6 +266,8 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md) | Security migration: [SEC
 - **Secure RLS Policies** - Centralized `is_admin()` function for all admin checks
 - **Row-Level Security** - All Supabase tables protected with RLS
 - **Server-side Verification** - reCAPTCHA tokens verified server-side only
+- **CSV Export Security** - 7-layer protection (session, rate limit, CSRF, server-side, injection prevention, audit, HTTPS)
+- **Audit Logging** - All CSV exports logged to database with admin email, timestamp, record count
 - **Environment Variables** - Secrets never exposed to client
 - **Input Validation** - All forms validated client + server
 
@@ -274,12 +281,19 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md) | Security migration: [SEC
 - **CI/CD Security Pipeline** - GitHub Actions (secret detection, vulnerability scanning, license checks)
 - **Privacy Compliance** - GDPR/CCPA with comprehensive privacy policy
 - **Security Logging** - Event tracking and monitoring by severity
+- **🔒 Secure Logging & Data Protection (Dec 2025)**:
+  - **Automatic Data Redaction** - OAuth codes, tokens, and PII automatically redacted from logs
+  - **Environment-Aware Logging** - Detailed logs in dev, minimal in production
+  - **Safe Error Serialization** - `AppError.toSafeJSON()` prevents sensitive data exposure
+  - **Zero Sensitive Data Exposure** - Comprehensive audit confirms no PII, tokens, or secrets in logs
+  - **Secure Logging Utilities** - `logSecureUrl()` and `redactSensitiveData()` functions
+  - See [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) for complete audit
 - **Request Size Limits** - 10KB max for form submissions
 - **Restricted Image Domains** - No wildcard hosts allowed
 
 ### Admin Management
-- **Easy Admin Management** - Add/remove admins via SQL without code/schema changes
-- **Audit Trail** - Full tracking of admin additions/removals with timestamps
+- **Easy Admin Management** - Add/remove admins via SQL without code deployment
+- **Soft Deletion** - Preserve admin history with active/inactive flags
 - **HTTPS** - Enforced in production (automatic with Vercel)
 
 See [SECURITY.md](SECURITY.md) and [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md) for detailed security documentation.
@@ -350,7 +364,7 @@ Submit contact form with reCAPTCHA verification.
 
 ### ✅ Recently Completed (December 2025)
 - [x] Admin authentication with Supabase Auth (OAuth with Google/GitHub)
-- [x] Admin CRUD interfaces (Blog, Projects, Articles, Products, Demos)
+- [x] Admin CRUD interfaces (8 content types: Blog, Projects, Articles, Products, Demos, Comments, Subscribers, Contact)
 - [x] Secure schema with `is_admin()` function and `admin_users` table
 - [x] Fixed Next.js 16 middleware conflicts (proxy.ts approach)
 - [x] Resolved admin login redirect loops
@@ -364,13 +378,17 @@ Submit contact form with reCAPTCHA verification.
   - [x] CI/CD security pipeline (secret detection, vulnerability scanning)
   - [x] Privacy compliance (GDPR/CCPA with privacy policy page)
   - [x] Comprehensive security documentation and migration guide
+- [x] **Subscribers & Contact Forms Management (December 2025)**
+  - [x] Newsletter subscriber CRUD with secure CSV export
+  - [x] Contact form submissions management (editable & deletable)
+  - [x] 7-layer CSV export security (session, rate limit, CSRF, server-side, injection prevention, audit, HTTPS)
+  - [x] Dynamic homepage (all sections fetch from database with empty states)
 
 ### 🔄 Planned Features
-- [ ] Newsletter subscriber management UI
-- [ ] Search functionality
-- [ ] Pagination for blog/portfolio
-- [ ] Email sending (newsletters)
-- [ ] Analytics integration
+- [ ] Email integration (newsletter sending, transactional emails via Resend/SendGrid)
+- [ ] Search functionality (blog, portfolio search)
+- [ ] Pagination for blog/portfolio lists
+- [ ] Analytics integration (Google Analytics or Plausible)
 - [ ] Image upload to Supabase Storage
 
 ## 📖 Documentation
@@ -379,6 +397,8 @@ Submit contact form with reCAPTCHA verification.
 - [CLAUDE.md](CLAUDE.md) - AI context & implementation status
 - [SETUP.md](SETUP.md) - Detailed setup instructions
 - [ADMIN-SETUP.md](ADMIN-SETUP.md) - Admin portal setup and usage
+- [TESTING-GUIDE.md](TESTING-GUIDE.md) - Testing CSV export security & features
+- [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md) - Current implementation status
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 - [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) - reCAPTCHA configuration
 

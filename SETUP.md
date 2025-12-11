@@ -31,12 +31,21 @@ Edit `.env.local` with your project details:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-ADMIN_EMAIL=your-admin-email@example.com
 
 # Google reCAPTCHA v2 (get from https://www.google.com/recaptcha/admin)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
 RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
+
+# Vercel KV (REQUIRED for production - distributed rate limiting & CSRF)
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=your-kv-token
+KV_REST_API_READ_ONLY_TOKEN=your-kv-read-only-token
+
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
+
+**Note:** `ADMIN_EMAIL` is no longer used. Admin access is now managed via the `admin_users` table in Supabase.
 
 See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA configuration.
 

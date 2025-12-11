@@ -31,7 +31,10 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
           setComments(data.comments || []);
         }
       } catch (error) {
-        console.error('Error fetching comments:', error);
+        // Only log error details in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching comments:', error);
+        }
       } finally {
         setIsLoading(false);
       }

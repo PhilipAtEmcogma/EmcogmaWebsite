@@ -84,16 +84,23 @@ Ensure your `.env.local` file contains:
 
 ```env
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://kuafldiotehblyuvnwgu.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
-# Admin Email (whitelisted for admin access)
-ADMIN_EMAIL=emcogma@gmail.com
+# Vercel KV (REQUIRED for production)
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=your_kv_token
+KV_REST_API_READ_ONLY_TOKEN=your_kv_read_only_token
 
-# reCAPTCHA (optional for admin)
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+
+# reCAPTCHA (for contact form)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key
 RECAPTCHA_SECRET_KEY=your_secret_key
 ```
+
+**Note:** Admin access is managed via the `admin_users` table in Supabase (no environment variable needed).
 
 ## Step 4: Access the Admin Portal
 

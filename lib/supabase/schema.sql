@@ -82,9 +82,35 @@ CREATE TABLE IF NOT EXISTS subscribers (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   subscribed BOOLEAN DEFAULT true,
-  subscribed_at TIMESTAMPTZ DEFAULT NOW(),
-  unsubscribed_at TIMESTAMPTZ
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Export audit logs table
+-- Tracks all data exports for compliance and security monitoring
+CREATE TABLE IF NOT EXISTS admin_export_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  admin_email TEXT NOT NULL,
+  admin_user_id UUID,
+  export_type TEXT NOT NULL, -- 'subscribers', 'contacts', etc.
+  record_count INTEGER NOT NULL,
+  fields_exported TEXT[] DEFAULT '{}', -- Track which fields were exported
+  ip_address TEXT,
+  user_agent TEXT,
+  exported_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Foreign key to admin_users for referential integrity
+  CONSTRAINT fk_admin_user FOREIGN KEY (admin_user_id)
+    REFERENCES admin_users(id) ON DELETE SET NULL
+);
+
+-- Indexes for export logs query performance
+CREATE INDEX IF NOT EXISTS idx_export_logs_admin_email
+  ON admin_export_logs(admin_email);
+CREATE INDEX IF NOT EXISTS idx_export_logs_exported_at
+  ON admin_export_logs(exported_at DESC);
+CREATE INDEX IF NOT EXISTS idx_export_logs_export_type
+  ON admin_export_logs(export_type);
 
 -- Projects table
 CREATE TABLE IF NOT EXISTS projects (
@@ -203,6 +229,9 @@ DROP POLICY IF EXISTS "Anyone can insert comments" ON comments;
 DROP POLICY IF EXISTS "Admin can moderate comments" ON comments;
 DROP POLICY IF EXISTS "Anyone can subscribe" ON subscribers;
 DROP POLICY IF EXISTS "Admin can view subscribers" ON subscribers;
+DROP POLICY IF EXISTS "Admin can manage subscribers" ON subscribers;
+DROP POLICY IF EXISTS "Admins can view all export logs" ON admin_export_logs;
+DROP POLICY IF EXISTS "Only server can insert export logs" ON admin_export_logs;
 DROP POLICY IF EXISTS "Public can view projects" ON projects;
 DROP POLICY IF EXISTS "Admin can manage projects" ON projects;
 DROP POLICY IF EXISTS "Anyone can submit contact form" ON contact_submissions;
@@ -244,7 +273,7 @@ CREATE POLICY "Anyone can insert comments" ON comments
 CREATE POLICY "Admin can moderate comments" ON comments
   FOR ALL USING (is_admin());
 
--- Subscribers: Anyone can insert, only admin can view
+-- Subscribers: Anyone can insert, only admin can view and manage
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Anyone can subscribe" ON subscribers
@@ -252,6 +281,18 @@ CREATE POLICY "Anyone can subscribe" ON subscribers
 
 CREATE POLICY "Admin can view subscribers" ON subscribers
   FOR SELECT USING (is_admin());
+
+CREATE POLICY "Admin can manage subscribers" ON subscribers
+  FOR ALL USING (is_admin());
+
+-- Export Logs: Only admins can read their export logs
+ALTER TABLE admin_export_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view all export logs" ON admin_export_logs
+  FOR SELECT USING (is_admin());
+
+CREATE POLICY "Only server can insert export logs" ON admin_export_logs
+  FOR INSERT WITH CHECK (is_admin());
 
 -- Projects: Public can read, admin can modify
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;

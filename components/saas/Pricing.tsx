@@ -1,55 +1,66 @@
-export default function Pricing() {
-  const plans = [
-    {
-      name: 'Starter',
-      price: '$0',
-      period: 'forever',
-      description: 'Perfect for individual developers and hobbyists',
-      features: [
-        '5 projects',
-        'Basic AI assistance',
-        'Community support',
-        '1GB storage',
-        'Basic analytics',
-      ],
-      cta: 'Get Started',
-      highlighted: false,
-    },
-    {
-      name: 'Pro',
-      price: '$29',
-      period: 'per month',
-      description: 'For professionals and growing teams',
-      features: [
-        'Unlimited projects',
-        'Advanced AI features',
-        'Priority support',
-        '100GB storage',
-        'Advanced analytics',
-        'Real-time collaboration',
-        'Custom themes',
-      ],
-      cta: 'Start Free Trial',
-      highlighted: true,
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      period: 'contact us',
-      description: 'For large organizations with custom needs',
-      features: [
-        'Everything in Pro',
-        'Dedicated support',
-        'Unlimited storage',
-        'SSO & SAML',
-        'Custom integrations',
-        'SLA guarantee',
-        'On-premise option',
-      ],
-      cta: 'Contact Sales',
-      highlighted: false,
-    },
-  ];
+import { createStaticClient } from '@/lib/supabase/server';
+import type { Product } from '@/lib/types';
+
+export const revalidate = 60; // Revalidate every 60 seconds
+
+export default async function Pricing() {
+  const supabase = createStaticClient();
+
+  // Fetch active products from database
+  const { data: products } = await supabase
+    .from('products')
+    .select('*')
+    .eq('active', true)
+    .order('display_order', { ascending: true });
+
+  // Map database products to plan format
+  const plans =
+    products && products.length > 0
+      ? products.map((product: Product) => ({
+          name: product.name,
+          price: product.price_monthly
+            ? `$${product.price_monthly}`
+            : product.price_yearly
+            ? `$${product.price_yearly}`
+            : 'Custom',
+          period: product.price_monthly
+            ? 'per month'
+            : product.price_yearly
+            ? 'per year'
+            : 'contact us',
+          description: product.tagline,
+          features: product.features || [],
+          cta: product.featured ? 'Start Free Trial' : 'Get Started',
+          highlighted: product.featured,
+        }))
+      : [];
+
+  // Empty state if no products
+  if (!plans || plans.length === 0) {
+    return (
+      <section className="section-container">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-5xl font-bold font-mono mb-4">
+            <span className="neon-text-pink">Transparent Pricing</span>
+          </h2>
+          <p className="text-foreground/60 text-lg max-w-2xl mx-auto">
+            Choose the plan that fits your needs. All plans include 14-day free trial.
+          </p>
+        </div>
+
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="card-cyber p-12">
+            <div className="text-6xl mb-4">🚀</div>
+            <h3 className="text-2xl font-bold neon-text mb-4">Pricing Coming Soon</h3>
+            <p className="text-foreground/60">
+              We're finalizing our pricing plans. Check back soon for exciting options tailored to your
+              needs!
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="section-container">

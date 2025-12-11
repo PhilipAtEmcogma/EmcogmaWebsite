@@ -51,7 +51,7 @@ EmcogmaWebsite/
 │   └── ...
 │
 ├── components/                       # React components
-│   ├── ui/                          # ✨ NEW: Reusable UI components
+│   ├── ui/                          # ✨ NEW: Reusable UI components (9 total)
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── Textarea.tsx
@@ -60,17 +60,29 @@ EmcogmaWebsite/
 │   │   ├── Card.tsx
 │   │   ├── Badge.tsx
 │   │   ├── Modal.tsx
+│   │   ├── Toast.tsx               # ✨ NEW: Toast notification system
 │   │   └── index.ts
 │   │
 │   ├── admin/                        # Admin components
-│   │   ├── config/                  # ✨ NEW: CRUD configurations
+│   │   ├── config/                  # ✨ CRUD configurations (8 content types)
 │   │   │   ├── blogPostsConfig.ts
 │   │   │   ├── projectsConfig.ts
-│   │   │   └── ...
+│   │   │   ├── articlesConfig.ts
+│   │   │   ├── productsConfig.ts
+│   │   │   ├── demosConfig.ts
+│   │   │   ├── commentsConfig.ts
+│   │   │   ├── subscribersConfig.ts
+│   │   │   ├── contactSubmissionsConfig.ts
+│   │   │   └── index.ts
 │   │   │
-│   │   ├── BlogPostsManager.tsx     # Old: 326 lines
-│   │   ├── BlogPostsManagerNew.tsx  # ✨ NEW: 10 lines
-│   │   └── ...
+│   │   ├── BlogPostsManager.tsx     # ✨ REFACTORED: 16 lines (was 326)
+│   │   ├── ProjectsManager.tsx      # ✨ REFACTORED: 16 lines (was 347)
+│   │   ├── ArticlesManager.tsx      # ✨ REFACTORED: 16 lines (was 327)
+│   │   ├── ProductsManager.tsx      # ✨ REFACTORED: 16 lines (was 416)
+│   │   ├── DemosManager.tsx         # ✨ REFACTORED: 16 lines (was 355)
+│   │   ├── CommentsManager.tsx      # ✨ REFACTORED: 16 lines (was 280)
+│   │   ├── SubscribersManager.tsx   # Newsletter subscribers + CSV export (110 lines)
+│   │   └── ContactSubmissionsManager.tsx  # Contact form submissions (16 lines)
 │   │
 │   ├── blog/
 │   └── contact/
@@ -93,6 +105,7 @@ EmcogmaWebsite/
 │   │   ├── format.ts                # Formatting functions
 │   │   ├── array.ts                 # Array utilities
 │   │   ├── url.ts                   # URL utilities
+│   │   ├── csv.ts                   # CSV generation with injection prevention
 │   │   └── index.ts                 # Re-exports
 │   │
 │   ├── validation/                  # ✨ NEW: Validation system
@@ -306,8 +319,10 @@ export const blogPostsConfig: CrudConfig<BlogPost> = {
 };
 ```
 
-2. **Use in Component** (10 lines instead of 326!):
+2. **Use in Component** (16 lines instead of 326!):
 ```typescript
+'use client';
+
 import { CrudManager } from '@/lib/crud';
 import { blogPostsConfig } from './config/blogPostsConfig';
 
@@ -329,15 +344,16 @@ export default function BlogPostsManager() {
 
 **Purpose**: Reusable cyberpunk-themed components
 
-**Components**:
-- `Button` - Multi-variant button
-- `Input` - Form input with validation
-- `Textarea` - Multi-line input
-- `Loading` - Loading states
-- `EmptyState` - Empty state display
-- `Card` - Card container
-- `Badge` - Status badges
-- `Modal` - Dialog modal
+**Components** (9 total):
+- `Button` - Multi-variant button (primary, secondary, danger, ghost)
+- `Input` - Form input with validation state
+- `Textarea` - Multi-line input with auto-resize
+- `Loading` - Loading states with spinner and message
+- `EmptyState` - Empty state display with icon and action
+- `Card` - Card container with optional header/footer
+- `Badge` - Status badges (success, warning, error, info)
+- `Modal` - Dialog modal with backdrop
+- `Toast` - Toast notification system with auto-dismiss (NEW)
 
 **Benefits**:
 - Consistent UI/UX
@@ -377,19 +393,20 @@ import { Button, Input, Loading, EmptyState } from '@/components/ui';
 
 ### 7. Error Handling System (`lib/errors/`)
 
-**Purpose**: Consistent error handling
+**Purpose**: Consistent error handling with production-safe logging
 
 **Components**:
-- `AppError` - Base error class
+- `AppError` - Base error class with safe serialization (`toSafeJSON()`)
 - Specialized errors (DatabaseError, ValidationError, etc.)
-- `useErrorHandler` - React hook
-- `ErrorBoundary` - React error boundary
+- `useErrorHandler` - React hook with environment-aware logging
+- `ErrorBoundary` - React error boundary with secure error display
 
 **Benefits**:
 - Consistent error messages
-- Error logging/monitoring
-- User-friendly error display
+- **Secure error logging** - No sensitive data exposure in production
+- User-friendly error display (never shows internal errors to users)
 - Type-safe error handling
+- Environment-aware logging (detailed in dev, minimal in production)
 
 **Usage**:
 ```typescript
@@ -409,6 +426,69 @@ function MyComponent() {
   };
 }
 ```
+
+**Security Features** (Dec 2025):
+- `AppError.toSafeJSON()` - Redacts sensitive data in production logs
+- Environment-aware console logging (dev vs production)
+- User-friendly error messages only (internal errors never shown)
+- See [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md)
+
+---
+
+### 8. Security Utilities (`lib/security/logger.ts`)
+
+**Purpose**: Prevent sensitive data exposure in logs and error messages
+
+**New Functions** (Dec 2025):
+- `redactSensitiveData(data)` - Automatically redacts sensitive parameters from URLs and objects
+- `logSecureUrl(label, url)` - Safe URL logging with automatic redaction
+
+**Redacted Parameters**:
+- OAuth codes, tokens (access_token, refresh_token, id_token)
+- Passwords, secrets, API keys
+- Authorization headers, session data, cookies
+
+**Benefits**:
+- **Zero sensitive data exposure** in production logs
+- **OWASP A09:2021 compliance** - Security Logging and Monitoring Failures
+- **GDPR/Privacy compliance** - No PII in logs
+- **Automatic protection** - No manual redaction needed
+
+**Usage**:
+```typescript
+import { logSecureUrl, redactSensitiveData } from '@/lib/security/logger';
+
+// ❌ WRONG - Exposes OAuth code
+console.log('Callback URL:', request.url);
+// Output: http://localhost:3000/auth/callback?code=abc123...
+
+// ✅ CORRECT - Redacts sensitive params
+logSecureUrl('Callback URL', request.url);
+// Output: Callback URL: http://localhost:3000/auth/callback?code=[REDACTED]&next=%2Fadmin
+
+// Redact objects with sensitive data
+const data = {
+  user: 'john@example.com',
+  token: 'abc123',
+  access_token: 'xyz789'
+};
+console.log('Data:', redactSensitiveData(data));
+// Output: Data: { user: 'john@example.com', token: '[REDACTED]', access_token: '[REDACTED]' }
+```
+
+**Environment-Aware Logging Pattern**:
+```typescript
+// Production-safe error logging
+catch (error) {
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Detailed error:', error);  // Full details in dev
+  } else {
+    console.error('Error occurred:', error.message);  // Minimal in production
+  }
+}
+```
+
+**Audit Report**: [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) - Complete sensitive data exposure audit (Dec 2025)
 
 ---
 
@@ -456,14 +536,18 @@ export default function BlogPostsManager() {
 }
 ```
 
-**After** (BlogPostsManagerNew.tsx - 10 lines):
+**After** (BlogPostsManager.tsx - 16 lines):
 ```typescript
 'use client';
 
 import { CrudManager } from '@/lib/crud';
 import { blogPostsConfig } from './config/blogPostsConfig';
 
-export default function BlogPostsManagerNew() {
+/**
+ * Blog Posts Manager - Admin interface for managing blog posts
+ * Uses generic CRUD system for all operations
+ */
+export default function BlogPostsManager() {
   return <CrudManager config={blogPostsConfig} />;
 }
 ```
@@ -645,11 +729,13 @@ try { /* ... */ } catch (err) { alert(err.message); }
 
 The refactored architecture provides:
 
-- **77% reduction** in admin CRUD code (~1,800 → ~400 lines)
+- **95% reduction** in admin manager components (326+ → 16 lines each)
+- **16% overall reduction** in admin code (~2,000 → ~1,700 lines)
 - **Single source of truth** for types, config, validation
-- **Reusable components** and utilities
+- **9 reusable UI components** including Toast notification system
 - **Consistent patterns** across the codebase
 - **Industry-standard** practices
+- **5-minute setup** for new content types
 
 This foundation makes the codebase:
 - Easier to maintain

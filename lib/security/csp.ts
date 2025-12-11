@@ -3,13 +3,14 @@
  * Provides strong XSS protection for Next.js applications
  */
 
-import crypto from 'crypto';
-
 /**
- * Generate a cryptographically secure nonce
+ * Generate a cryptographically secure nonce using Web Crypto API
+ * Compatible with Edge Runtime
  */
 export function generateNonce(): string {
-  return crypto.randomBytes(16).toString('base64');
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array));
 }
 
 /**

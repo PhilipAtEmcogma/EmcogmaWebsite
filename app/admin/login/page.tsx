@@ -16,6 +16,8 @@ function LoginForm() {
       setError('Unauthorized: Only admin users can access this area.');
     } else if (errorParam === 'session_timeout') {
       setError('Your session has expired due to inactivity. Please sign in again.');
+    } else if (errorParam === 'auth_failed') {
+      setError('Authentication failed. Please try again.');
     }
   }, [searchParams]);
 
@@ -27,7 +29,12 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
+          skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
@@ -46,7 +53,7 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
-          redirectTo: `${window.location.origin}/admin`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
         },
       });
 

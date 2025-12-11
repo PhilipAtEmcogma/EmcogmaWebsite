@@ -27,6 +27,11 @@ export enum SecurityEventType {
   LARGE_PAYLOAD = 'LARGE_PAYLOAD',
   MALFORMED_REQUEST = 'MALFORMED_REQUEST',
 
+  // Data export events
+  DATA_EXPORT_SUCCESS = 'DATA_EXPORT_SUCCESS',
+  DATA_EXPORT_FAILURE = 'DATA_EXPORT_FAILURE',
+  DATA_EXPORT_UNAUTHORIZED = 'DATA_EXPORT_UNAUTHORIZED',
+
   // General security
   SECURITY_HEADER_VIOLATION = 'SECURITY_HEADER_VIOLATION',
   BLOCKED_REQUEST = 'BLOCKED_REQUEST',
@@ -266,6 +271,84 @@ export function getSecurityLogger(): SecurityLogger {
 }
 
 /**
+ * Redact sensitive information from URLs and data
+ */
+export function redactSensitiveData(data: unknown): unknown {
+  // Sensitive parameter names to redact
+  const sensitiveParams = [
+    'code',
+    'token',
+    'access_token',
+    'refresh_token',
+    'id_token',
+    'password',
+    'secret',
+    'api_key',
+    'apikey',
+    'auth',
+    'authorization',
+    'session',
+    'cookie',
+  ];
+
+  if (typeof data === 'string') {
+    // Check if it's a URL
+    try {
+      const url = new URL(data);
+
+      // Redact query parameters
+      sensitiveParams.forEach(param => {
+        if (url.searchParams.has(param)) {
+          url.searchParams.set(param, '[REDACTED]');
+        }
+      });
+
+      return url.toString();
+    } catch {
+      // Not a URL, return as-is (or could implement further text redaction)
+      return data;
+    }
+  }
+
+  if (typeof data === 'object' && data !== null) {
+    if (Array.isArray(data)) {
+      return data.map(item => redactSensitiveData(item));
+    }
+
+    const redacted: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      const lowerKey = key.toLowerCase();
+
+      // Check if key is sensitive
+      const isSensitive = sensitiveParams.some(param =>
+        lowerKey.includes(param)
+      );
+
+      if (isSensitive) {
+        redacted[key] = '[REDACTED]';
+      } else if (typeof value === 'object' || typeof value === 'string') {
+        redacted[key] = redactSensitiveData(value);
+      } else {
+        redacted[key] = value;
+      }
+    }
+    return redacted;
+  }
+
+  return data;
+}
+
+/**
+ * Safely log a URL with sensitive parameters redacted
+ */
+export function logSecureUrl(label: string, url: string): void {
+  const redactedUrl = redactSensitiveData(url);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`${label}:`, redactedUrl);
+  }
+}
+
+/**
  * Convenience functions for common security events
  */
 export const SecurityLog = {
@@ -347,6 +430,46 @@ export const SecurityLog = {
       SecuritySeverity.HIGH,
       `Request blocked: ${reason}`,
       { ...context, details: { reason } }
+    );
+  },
+
+  dataExportSuccess: (
+    context: ReturnType<typeof getRequestContext>,
+    email: string,
+    exportType: string,
+    recordCount: number
+  ) => {
+    logSecurityEvent(
+      SecurityEventType.DATA_EXPORT_SUCCESS,
+      SecuritySeverity.MEDIUM,
+      `Data export successful: ${exportType} (${recordCount} records)`,
+      { ...context, email, details: { exportType, recordCount } }
+    );
+  },
+
+  dataExportFailure: (
+    context: ReturnType<typeof getRequestContext>,
+    email: string,
+    exportType: string,
+    reason: string
+  ) => {
+    logSecurityEvent(
+      SecurityEventType.DATA_EXPORT_FAILURE,
+      SecuritySeverity.HIGH,
+      `Data export failed: ${exportType} - ${reason}`,
+      { ...context, email, details: { exportType, reason } }
+    );
+  },
+
+  dataExportUnauthorized: (
+    context: ReturnType<typeof getRequestContext>,
+    exportType: string
+  ) => {
+    logSecurityEvent(
+      SecurityEventType.DATA_EXPORT_UNAUTHORIZED,
+      SecuritySeverity.HIGH,
+      `Unauthorized data export attempt: ${exportType}`,
+      { ...context, details: { exportType } }
     );
   },
 };

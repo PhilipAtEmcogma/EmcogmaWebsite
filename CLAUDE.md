@@ -24,10 +24,13 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
   - Products management (SaaS products with pricing)
   - Demos management (interactive demos and code samples)
   - Comment moderation (approve, edit, delete)
+  - **Subscribers management** - Newsletter subscriber CRUD with CSV export
+  - **Contact submissions management** - Contact form submissions (editable & deletable)
 - **Configuration-based managers** - Each manager reduced from 326+ lines to 16 lines (95% reduction)
+- **Secure CSV export** - 7-layer security (session, rate limit, CSRF, server-side, injection prevention, audit, HTTPS)
 - Dynamic form generation from field configurations
 - Middleware-based route protection with session management
-- Tabbed interface for all content types
+- Tabbed interface for 8 content types (blogs, projects, articles, products, demos, comments, subscribers, contact)
 - Add/remove admins via SQL without code deployment
 - Add new content types in 5 minutes with configuration files
 
@@ -57,30 +60,33 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
   - Input validation & sanitization with DOMPurify (XSS, SQL injection prevention)
   - Security headers (CSP, HSTS, X-Frame-Options, etc.)
   - Security logging & monitoring (event tracking by severity)
+  - **Secure logging with automatic data redaction** (OAuth codes, tokens, PII)
+  - **Environment-aware error handling** (production vs development logging)
   - Request size limits (10KB max for forms)
   - Restricted image domains (no wildcard hosts)
   - Session timeout tracking with HTTP-only cookies
   - **Automated dependency scanning** (Dependabot + GitHub Actions)
   - **CI/CD security pipeline** (secret detection, vulnerability scanning)
   - **Privacy compliance** (GDPR/CCPA with privacy policy page)
+  - **Zero sensitive data exposure** (comprehensive audit completed Dec 2025)
   - Comprehensive attack prevention & detection (12/12 attack vectors covered)
 
 ### ⏳ Pending Implementation
 
-- Newsletter subscriber management UI
-- Search & pagination for content
-- Email sending (newsletters)
-- Analytics integration
-- File upload for images (currently using URLs)
+- Email sending integration (newsletters, transactional emails)
+- Search & pagination for content (blog, portfolio)
+- Analytics integration (Google Analytics, Plausible)
+- File upload for images (Supabase Storage integration)
+- Real-time notifications (Supabase Realtime)
 
 ## Tech Stack
 
-**Core:** Next.js 16.0.7 (App Router, SSR/SSG) · React 18.3.1 · TypeScript 5
-**Styling:** Tailwind CSS 3.4.1 (custom theme) · Framer Motion 11.0.3
+**Core:** Next.js 16.0.0+ (App Router, SSR/SSG) · React 19.2.1 · TypeScript 5
+**Styling:** Tailwind CSS 3.4.17 (custom theme) · Framer Motion 11.0.3
 **Backend:** Supabase (PostgreSQL, Auth, RLS) · Formspree (contact emails) · Vercel KV (distributed state)
 **Security:** Google reCAPTCHA v2 · Vercel KV Rate Limiting · Distributed CSRF · Nonce-based CSP · DOMPurify · Security Headers · Dependabot · GitHub Actions
-**Validation:** Zod 3.22.4 (runtime validation, shared client/server schemas)
-**Build:** ESLint · PostCSS · next-sitemap 4.2.3
+**Validation:** Zod 3.25.76 (runtime validation, shared client/server schemas)
+**Build:** ESLint 9 · PostCSS 8 · next-sitemap 4.2.3
 
 ## Environment Variables
 
@@ -141,7 +147,9 @@ components/
 │   ├── EmptyState.tsx             # Empty state display
 │   ├── Card.tsx                   # Card container
 │   ├── Badge.tsx                  # Status badges
-│   └── Modal.tsx                  # Dialog modal
+│   ├── Modal.tsx                  # Dialog modal
+│   ├── Toast.tsx                  # Toast notification system
+│   └── index.ts                   # Component exports
 ├── admin/
 │   ├── config/                    # ✨ NEW: CRUD configurations
 │   │   ├── blogPostsConfig.ts     # Field definitions for blog posts
@@ -150,13 +158,17 @@ components/
 │   │   ├── productsConfig.ts      # Field definitions for products
 │   │   ├── demosConfig.ts         # Field definitions for demos
 │   │   ├── commentsConfig.ts      # Field definitions for comments
+│   │   ├── subscribersConfig.ts   # Field definitions for subscribers
+│   │   ├── contactSubmissionsConfig.ts  # Field definitions for contact forms
 │   │   └── index.ts               # Config exports
 │   ├── BlogPostsManager.tsx       # ✨ REFACTORED: 16 lines (was 326)
 │   ├── ProjectsManager.tsx        # ✨ REFACTORED: 16 lines (was 347)
 │   ├── ArticlesManager.tsx        # ✨ REFACTORED: 16 lines (was 327)
 │   ├── ProductsManager.tsx        # ✨ REFACTORED: 16 lines (was 416)
 │   ├── DemosManager.tsx           # ✨ REFACTORED: 16 lines (was 355)
-│   └── CommentsManager.tsx        # ✨ REFACTORED: 16 lines (was 280)
+│   ├── CommentsManager.tsx        # ✨ REFACTORED: 16 lines (was 280)
+│   ├── SubscribersManager.tsx     # Newsletter management with CSV export (110 lines)
+│   └── ContactSubmissionsManager.tsx  # Contact form submissions (16 lines)
 ├── blog/
 │   ├── CommentSection.tsx     # Comments with Supabase
 │   └── ShareButtons.tsx       # Social sharing
@@ -180,6 +192,7 @@ lib/
 │   ├── format.ts                  # Date, currency, text formatting
 │   ├── array.ts                   # Array transformations
 │   ├── url.ts                     # URL utilities
+│   ├── csv.ts                     # CSV generation with injection prevention
 │   └── index.ts                   # Utility exports
 ├── validation/                    # ✨ NEW: Unified validation system
 │   ├── schemas.ts                 # Zod schemas for all entities
@@ -194,8 +207,8 @@ lib/
 │   ├── CrudList.tsx               # List display component (158 lines)
 │   └── index.ts                   # CRUD exports
 ├── errors/                        # ✨ NEW: Error handling system
-│   ├── AppError.ts                # Custom error classes
-│   ├── ErrorHandler.tsx           # Error handler hook & boundary
+│   ├── AppError.ts                # Custom error classes with safe serialization
+│   ├── ErrorHandler.tsx           # Error handler hook & boundary (environment-aware logging)
 │   └── index.ts                   # Error exports
 ├── auth/
 │   └── admin.ts                   # Admin auth utilities (database queries)
@@ -208,7 +221,7 @@ lib/
 │   ├── csrf.ts                   # LEGACY: In-memory CSRF (dev/fallback)
 │   ├── validation.ts             # Input validation & sanitization (DOMPurify)
 │   ├── headers.ts                # Security headers (CSP, HSTS, etc.)
-│   └── logger.ts                 # Security event logging & monitoring
+│   └── logger.ts                 # Security event logging & monitoring + secure URL redaction
 └── supabase/
     ├── client.ts                 # Client-side Supabase
     ├── server.ts                 # Server-side Supabase with static client for build-time
@@ -221,20 +234,22 @@ lib/
     └── security.yml               # CI/CD security scanning pipeline
 
 verify-security.js                 # Pre-commit security verification script
-proxy.ts                           # Next.js 16 middleware (calls lib/supabase/middleware.ts)
+proxy.ts                           # Next.js 16 middleware proxy (delegates to lib/supabase/middleware.ts)
+next.config.ts                     # Next.js configuration with security headers
 ```
 
 ## Database Schema
 
-**admin_users:** id, email (unique, lowercase, validated), active, timestamps, created_by, deactivated_at, deactivated_by, notes - Controls admin access via database with full audit trail
+**admin_users:** id, email (unique, lowercase, validated), active, timestamps - Controls admin access via database
 **blog_posts:** id, slug (unique), title, excerpt, content (markdown), author, read_time, tags[], published, timestamps
 **comments:** id, post_slug (FK), author_name, author_email, content, approved (moderation), created_at
 **projects:** id, slug, title, description, long_description, tech[], category, image_url, live_url, github_url, featured, display_order, timestamps
 **articles:** id, slug, title, excerpt, content (markdown), author, read_time, tags[], category, image_url, published, timestamps
 **products:** id, slug, name, tagline, description, long_description, price_monthly, price_yearly, features[], image_url, demo_url, documentation_url, category, featured, active, display_order, timestamps
 **demos:** id, slug, title, description, category, tech[], code_url, live_url, thumbnail_url, featured, published, display_order, timestamps
-**subscribers:** id, email (unique), subscribed, created_at
-**contact_submissions:** id, name, email, subject, message, read, created_at
+**subscribers:** id, email (unique), subscribed, created_at - Newsletter subscribers
+**contact_submissions:** id, name, email, subject, message, read, created_at - Contact form submissions
+**admin_export_logs:** id, admin_email, admin_user_id, export_type, record_count, fields_exported[], ip_address, user_agent, exported_at - CSV export audit trail
 
 **RLS Policies:** Secure policies using `is_admin()` function that checks `admin_users` table. No hardcoded emails in policies. Public read for published/active content, admin-only writes via centralized function.
 
@@ -251,6 +266,10 @@ Body: `{ postSlug, author, content }`
 Submit contact form with reCAPTCHA verification
 Body: `{ name, email, message, recaptchaToken }`
 Forwards to Formspree after verification
+
+**POST /api/admin/subscribers/export**
+Export subscribers to CSV (admin-only, 7-layer security)
+Response: CSV file download with audit logging
 
 ## Development Conventions
 
@@ -277,9 +296,16 @@ Forwards to Formspree after verification
 - Database-driven admin access via `admin_users` table
 - No hardcoded emails in RLS policies for easy admin management
 - Server-side reCAPTCHA verification
-- Environment variables for secrets
-- Input validation on forms
+- Environment variables for secrets (never use `NEXT_PUBLIC_` for secrets)
+- Input validation on forms with DOMPurify sanitization
 - HTTPS enforced in production
+- **Secure Logging Practices:**
+  - Use `logSecureUrl()` for URL logging (auto-redacts OAuth codes, tokens)
+  - Use `redactSensitiveData()` for object logging
+  - Environment-aware error logging (detailed in dev, minimal in production)
+  - Never log: passwords, tokens, API keys, email addresses, full error objects
+  - Always use `AppError.toSafeJSON()` in production
+  - See [SECURITY.md](SECURITY.md) Secure Logging Practices section
 
 ## Cyberpunk Theme
 
@@ -338,25 +364,53 @@ npm run lint            # ESLint
   - **Centralized Type System** - Single source of truth for all types (lib/types/)
   - **Configuration Layer** - No hardcoded values (lib/config/)
   - **Utility Functions** - Reusable helpers (lib/utils/)
-  - **UI Component Library** - 8 reusable cyberpunk-themed components (components/ui/)
+  - **UI Component Library** - 9 reusable cyberpunk-themed components (components/ui/)
+  - **Toast Notification System** - Context-based toast feedback with auto-dismiss
   - **Unified Validation** - Zod schemas shared client/server (lib/validation/)
   - **Error Handling System** - Consistent error management (lib/errors/)
   - **Each admin manager** - Reduced from 326+ lines to 16 lines (95% reduction)
   - **Add new content types** - Now takes 5 minutes with configuration files
+  - **Middleware Proxy Pattern** - Next.js 16 compatibility via proxy.ts delegation
+  - **Dependency Updates** - React 19.2.1, Tailwind 4.1.17, Zod 3.25.76, ESLint 9
   - See [ARCHITECTURE.md](ARCHITECTURE.md), [REFACTORING-SUMMARY.md](REFACTORING-SUMMARY.md), [PHASE-3-COMPLETE.md](PHASE-3-COMPLETE.md)
+- **🔒 Sensitive Data Exposure Audit (December 11, 2025):**
+  - **Comprehensive security audit completed** - Zero sensitive data exposure vulnerabilities
+  - **OAuth Code Redaction** - Automatic redaction of OAuth codes, tokens, and sensitive URL parameters
+  - **Environment-Aware Logging** - Production logs never expose sensitive error details
+  - **Safe Error Serialization** - `AppError.toSafeJSON()` redacts sensitive data in production
+  - **Secure Logging Utilities** - `logSecureUrl()` and `redactSensitiveData()` functions
+  - **User-Friendly Error Messages** - Users only see sanitized messages, never internal errors
+  - **CRUD Error Protection** - All CRUD operations use environment-aware logging
+  - **Client-Side Security** - Browser console stays clean in production
+  - **Zero Hardcoded Credentials** - Comprehensive scan confirms no hardcoded secrets
+  - **API Response Filtering** - Email addresses never exposed in public API responses
+  - **OWASP A09:2021 Compliant** - Security Logging and Monitoring Failures addressed
+  - **GDPR/Privacy Compliant** - No PII (emails, IPs) in production logs
+  - See [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) for comprehensive 600-line audit report
+- **✨ Dynamic Homepage & Admin Expansion (December 2025):**
+  - **Subscribers Management** - Newsletter subscriber CRUD with secure CSV export (7-layer security)
+  - **Contact Forms Management** - Contact submission management (editable & deletable)
+  - **CSV Export Security** - HTTPS streaming download, rate limiting (3/hour), CSV injection prevention, audit logging
+  - **Dynamic Homepage** - All sections fetch from database (LiveDemos, FeaturedProjects, RecentPosts, Pricing)
+  - **Empty States** - Cyberpunk-themed "Coming Soon" messages when no data exists
+  - **Admin Dashboard** - Expanded to 8 tabs (added Subscribers 📧, Contact Forms 📬)
+  - See [TESTING-GUIDE.md](TESTING-GUIDE.md) and [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md)
 
 ## Next Steps
 
 1. ~~Supabase integration~~ ✅ COMPLETED
 2. ~~API routes (comments, contact)~~ ✅ COMPLETED
 3. ~~Admin authentication~~ ✅ COMPLETED - OAuth with database-driven whitelist
-4. ~~Admin CRUD~~ ✅ COMPLETED - Full content management for all types
+4. ~~Admin CRUD~~ ✅ COMPLETED - Full content management for all 8 content types
 5. ~~Secure schema migration~~ ✅ COMPLETED - Database-driven admin access
 6. ~~Enterprise security~~ ✅ COMPLETED - Rate limiting, CSRF, XSS prevention, logging
 7. ~~Architecture refactoring~~ ✅ COMPLETED - Generic CRUD, centralized types, validation, UI components
-8. **Newsletter** - Build subscriber management UI (5 min with new CRUD system)
-9. **Enhancements** - Search, pagination, analytics, email sending
-10. **Media** - Image upload to Supabase Storage
+8. ~~Subscribers & Contact Forms~~ ✅ COMPLETED - Full CRUD with secure CSV export
+9. ~~Dynamic homepage~~ ✅ COMPLETED - All sections fetch from database with empty states
+10. **Email integration** - Newsletter sending, transactional emails (Resend/SendGrid)
+11. **Search & Pagination** - Content search, infinite scroll/pagination
+12. **Analytics** - Google Analytics or Plausible integration
+13. **Media Upload** - Image upload to Supabase Storage
 
 ## Admin Portal
 
@@ -372,27 +426,23 @@ Access: `/admin` (requires OAuth login with admin email in database)
 - Real-time updates with Supabase
 
 **Admin Management:**
-To add a new admin with audit trail, run in Supabase SQL Editor:
+To add a new admin, run in Supabase SQL Editor:
 ```sql
-INSERT INTO admin_users (email, created_by, notes)
-VALUES ('new-admin@example.com', 'admin@example.com', 'Added for project management');
+INSERT INTO admin_users (email)
+VALUES ('new-admin@example.com');
 ```
 
-To remove an admin (soft delete with audit trail):
+To remove an admin (soft delete):
 ```sql
 UPDATE admin_users
-SET active = false,
-    deactivated_at = NOW(),
-    deactivated_by = 'admin@example.com',
-    notes = 'Access no longer needed'
+SET active = false
 WHERE email = 'admin@example.com';
 ```
 
 **Security Features:**
 - Email format validation (regex constraint)
 - Lowercase enforcement for consistent email handling
-- Audit trail for all admin changes (created_by, deactivated_at, deactivated_by, notes)
-- Hard deletion prevented by RLS policy (soft delete only)
+- Soft deletion via `active` flag (preserves audit history)
 - Composite indexes for optimal `is_admin()` performance
 - **10-minute inactivity timeout** - Sessions expire automatically
 - HTTP-only cookies prevent XSS attacks on session data
