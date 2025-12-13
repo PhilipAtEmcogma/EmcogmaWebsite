@@ -84,6 +84,11 @@ export function formatDateForCsv(date: string | Date | null): string {
 
   const d = typeof date === 'string' ? new Date(date) : date;
 
+  // Check for invalid dates
+  if (isNaN(d.getTime())) {
+    return 'Invalid Date';
+  }
+
   // ISO format is safest for CSV (no locale issues)
   return d.toISOString();
 }

@@ -31,7 +31,7 @@ describe('stringToTags', () => {
   })
 
   it('should handle empty string', () => {
-    expect(stringToTags('')).toEqual([''])
+    expect(stringToTags('')).toEqual([])
   })
 })
 

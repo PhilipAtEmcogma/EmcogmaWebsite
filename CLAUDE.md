@@ -333,6 +333,9 @@ npm run dev             # Dev server (localhost:3000)
 npm run build           # Production build (includes sitemap)
 npm start               # Run production server
 npm run lint            # ESLint
+npm test                # Run unit tests with Vitest
+npm run test:ui         # Run tests with UI
+npm run test:coverage   # Run tests with coverage report
 ```
 
 ## Recent Updates (December 2025)
@@ -395,6 +398,21 @@ npm run lint            # ESLint
   - **Empty States** - Cyberpunk-themed "Coming Soon" messages when no data exists
   - **Admin Dashboard** - Expanded to 8 tabs (added Subscribers 📧, Contact Forms 📬)
   - See [TESTING-GUIDE.md](TESTING-GUIDE.md) and [IMPLEMENTATION-STATUS.md](IMPLEMENTATION-STATUS.md)
+- **🔧 Code Quality & Testing Fixes (December 14, 2025):**
+  - **Zero TypeScript Errors** - Fixed all 28 compilation errors (was blocking builds)
+  - **100% Test Pass Rate** - All 191 unit tests passing (191/191) with Vitest
+  - **Dependency Updates** - Updated Next.js to 16.0.10, happy-dom to 20.0.11
+  - **Security Fixes** - Resolved 1 critical and 1 high severity vulnerability
+  - **Bug Fixes:**
+    - Fixed CSV date formatting to handle invalid dates gracefully
+    - Fixed Subscriber type mismatches in export API
+    - Added proper TypeScript annotations for Supabase cookiesToSet
+    - Fixed testing library type declarations with @testing-library/jest-dom
+    - Fixed AppError test environment variable handling with vi.stubEnv()
+    - Fixed SubscribersManager CSRF token call with required sessionId
+    - Added contact form subject minimum length validation (3 chars)
+    - Fixed stringToTags test expectation for empty strings
+  - **Remaining Vulnerabilities:** 7 moderate (dev-only, no production impact)
 
 ## Next Steps
 

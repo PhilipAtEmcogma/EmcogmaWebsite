@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   AppError,
   DatabaseError,
@@ -50,14 +50,12 @@ describe('AppError', () => {
   })
 
   describe('toSafeJSON', () => {
-    const originalEnv = process.env.NODE_ENV
-
     afterEach(() => {
-      process.env.NODE_ENV = originalEnv
+      vi.unstubAllEnvs()
     })
 
     it('should return full details in development', () => {
-      process.env.NODE_ENV = 'development'
+      vi.stubEnv('NODE_ENV', 'development')
 
       const error = new AppError('Internal error', 'TEST_ERROR', 500, 'User message', {
         sensitive: 'data',
@@ -69,7 +67,7 @@ describe('AppError', () => {
     })
 
     it('should redact details in production', () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
 
       const error = new AppError('Internal error', 'TEST_ERROR', 500, 'User message', {
         sensitive: 'data',
@@ -83,7 +81,7 @@ describe('AppError', () => {
     })
 
     it('should handle undefined details in production', () => {
-      process.env.NODE_ENV = 'production'
+      vi.stubEnv('NODE_ENV', 'production')
 
       const error = new AppError('Internal error', 'TEST_ERROR')
       const safe = error.toSafeJSON()

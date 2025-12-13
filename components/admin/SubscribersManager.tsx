@@ -25,7 +25,9 @@ export default function SubscribersManager() {
 
       // Get CSRF token from distributed storage
       const { getOrCreateCsrfToken } = await import('@/lib/security/csrfDistributed');
-      const csrfToken = await getOrCreateCsrfToken();
+      // Generate a session ID for client-side usage (based on browser session)
+      const sessionId = `client-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      const csrfToken = await getOrCreateCsrfToken(sessionId);
 
       // Call export API
       const response = await fetch('/api/admin/subscribers/export', {
