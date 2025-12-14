@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSecurityHeaders, getApiSecurityHeaders } from '@/lib/security/headers';
 import { generateNonce } from '@/lib/security/csp';
+import { getClientIP } from './ip';
 
 export async function updateSession(request: NextRequest) {
   // Generate nonce for CSP (if enabled)
@@ -51,15 +52,6 @@ export async function updateSession(request: NextRequest) {
 
   // Check session timeout (10 minutes = 600000ms)
   const SESSION_TIMEOUT = parseInt(process.env.SESSION_TIMEOUT_MINUTES || '10') * 60 * 1000;
-
-  // Get client IP address
-  const getClientIP = (req: NextRequest): string => {
-    return (
-      req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-      req.headers.get('x-real-ip') ||
-      'unknown'
-    );
-  };
 
   // Handle session timeout for authenticated users on admin routes
   if (user && request.nextUrl.pathname.startsWith('/admin')) {
