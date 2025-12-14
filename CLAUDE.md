@@ -72,9 +72,20 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
   - Restricted image domains (no wildcard hosts)
   - Session timeout tracking with HTTP-only cookies
   - **Automated dependency scanning** (Dependabot + GitHub Actions)
-  - **CI/CD security pipeline** (secret detection, vulnerability scanning)
+  - **CI/CD security pipeline** - 9-job automated security workflow:
+    - TruffleHog secret detection (700+ secret types, verified only)
+    - Custom security verification script (15+ pattern checks)
+    - Dependency vulnerability scanning (npm audit)
+    - ESLint security linting (zero-warning policy)
+    - Security headers validation (CSP, HSTS, X-Frame-Options, etc.)
+    - TypeScript type checking & build verification
+    - Unit testing with coverage reports (Vitest)
+    - License compliance checking (approved OSS licenses only)
+    - Security gate enforcement (fails pipeline on critical issues)
+  - **GitGuardian integration** with false-positive prevention
   - **Privacy compliance** (GDPR/CCPA with privacy policy page)
   - **Zero sensitive data exposure** (comprehensive audit completed Dec 2025)
+  - **Zero hardcoded secrets** (all secrets in GitHub Secrets & Vercel env)
   - Comprehensive attack prevention & detection (12/12 attack vectors covered)
 
 ### ⏳ Pending Implementation
@@ -501,6 +512,7 @@ See [ADMIN-SETUP.md](ADMIN-SETUP.md) for detailed setup and usage guide.
 - [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) - reCAPTCHA configuration
 - [SECURITY.md](SECURITY.md) - Security best practices and overview
 - [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md) - Comprehensive security implementation guide
+- [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) - CI/CD security pipeline documentation
 
 **Architecture & Refactoring:**
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Complete architecture guide and best practices
