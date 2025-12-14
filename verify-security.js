@@ -224,12 +224,15 @@ try {
     .split('\n');
 
   // Exclude .env.example, .env.local.example, and other example files
-  const envFiles = gitFiles.filter(f =>
-    f.includes('.env') &&
-    !f.includes('.env.example') &&
-    !f.includes('.env.local.example') &&
-    !f.endsWith('.example')
-  );
+  const envFiles = gitFiles.filter(f => {
+    const filename = f.split('/').pop() || f;
+    return (
+      filename.startsWith('.env') &&
+      !filename.endsWith('.example') &&
+      filename !== '.env.local.example' &&
+      filename !== '.env.example'
+    );
+  });
   if (envFiles.length > 0) {
     errors.push(`Found .env files in git: ${envFiles.join(', ')}`);
   }
