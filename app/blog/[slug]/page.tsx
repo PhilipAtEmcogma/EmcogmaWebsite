@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient, createStaticClient } from '@/lib/supabase/server';
 import CommentSection from '@/components/blog/CommentSection';
+import { formatDate } from '@/lib/utils/format';
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -117,11 +118,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <header className="mb-12">
           <div className="mb-4">
             <time className="text-cyber-primary/60 font-mono text-sm">
-              {new Date(post.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatDate(post.created_at, 'long')}
             </time>
             <span className="mx-3 text-cyber-primary/30">•</span>
             <span className="text-foreground/60 text-sm">{post.read_time}</span>

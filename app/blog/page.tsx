@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { formatDate } from '@/lib/utils/format';
 
 export const metadata: Metadata = {
   title: 'Blog - Emcogma',
@@ -60,11 +61,7 @@ export default async function BlogPage() {
               Featured
             </span>
             <time className="text-cyber-primary/60 text-sm font-mono">
-              {new Date(blogPosts[0].created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
+              {formatDate(blogPosts[0].created_at, 'short')}
             </time>
           </div>
 
@@ -99,11 +96,7 @@ export default async function BlogPage() {
             <article className="card-cyber h-full flex flex-col">
               <div className="mb-4">
                 <time className="text-cyber-primary/60 text-sm font-mono">
-                  {new Date(post.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {formatDate(post.created_at, 'short')}
                 </time>
               </div>
 
