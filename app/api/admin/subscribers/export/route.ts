@@ -98,8 +98,6 @@ export async function POST(request: NextRequest) {
       'email',
       'subscribed',
       'created_at',
-      'subscribed_at',
-      'unsubscribed_at',
     ];
 
     const fieldsToExport = requestBody.fields
@@ -152,8 +150,6 @@ export async function POST(request: NextRequest) {
       email: sub.email,
       subscribed: formatBooleanForCsv(sub.subscribed),
       created_at: formatDateForCsv(sub.created_at),
-      subscribed_at: formatDateForCsv(sub.subscribed_at),
-      unsubscribed_at: formatDateForCsv(sub.unsubscribed_at),
     }));
 
     // ========================================
@@ -161,15 +157,13 @@ export async function POST(request: NextRequest) {
     // ========================================
     const csvContent = generateCsv(
       transformedData,
-      fieldsToExport as (keyof typeof transformedData)[],
+      fieldsToExport as (keyof (typeof transformedData)[0])[],
       fieldsToExport.map((f) => {
         // Human-readable headers
         const headerMap: Record<string, string> = {
           email: 'Email Address',
           subscribed: 'Subscribed',
           created_at: 'Created At',
-          subscribed_at: 'Subscribed At',
-          unsubscribed_at: 'Unsubscribed At',
         };
         return headerMap[f] || f;
       })

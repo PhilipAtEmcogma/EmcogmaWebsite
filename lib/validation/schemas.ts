@@ -185,7 +185,7 @@ export const contactFormSchema = z.object({
     .min(VALIDATION_RULES.contact.name.min, 'Name is too short')
     .max(VALIDATION_RULES.contact.name.max, 'Name is too long'),
   email: emailSchema,
-  subject: z.string().max(200, 'Subject is too long').optional(),
+  subject: z.string().min(3, 'Subject is too short').max(200, 'Subject is too long').optional(),
   message: z
     .string()
     .min(VALIDATION_RULES.contact.message.min, 'Message is too short')

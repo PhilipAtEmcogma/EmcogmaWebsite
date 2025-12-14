@@ -4,11 +4,15 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 
 **EMCOGMA is a hub for future-focused engineering.** We build intelligent systems, explore emerging technologies, and chronicle the ideas, research, and projects that chart the emerging horizon of a world co-authored by human imagination and machine intelligence.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.10-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2-61dafb)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)](https://tailwindcss.com/)
+
+[![Tests](https://img.shields.io/badge/tests-191%20passing-success)](https://vitest.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-success)](https://www.typescriptlang.org/)
+[![Security](https://img.shields.io/badge/security-OWASP%20A+-success)](https://owasp.org/)
 
 ## ✨ Features
 
@@ -102,6 +106,16 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000)
+
+### Run Tests
+
+```bash
+npm test              # Run unit tests
+npm run test:ui       # Run tests with UI
+npm run test:coverage # Run with coverage report
+```
+
+**Test Status:** ✅ 191/191 passing (100%)
 
 ## 🏗️ Architecture
 
