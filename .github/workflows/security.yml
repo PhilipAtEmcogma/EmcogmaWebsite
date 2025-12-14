@@ -52,9 +52,11 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          # Scan entire filesystem on push, only diff on PRs
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'HEAD' }}
           extra_args: --only-verified
+        continue-on-error: false
 
   lint-security:
     name: Security Linting
@@ -123,8 +125,9 @@ jobs:
           # Use dummy values for build
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
-          RECAPTCHA_SECRET_KEY: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+          # Using Google's official test keys (see: https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do)
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.TEST_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.TEST_RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe' }}
           FORMSPREE_ENDPOINT: https://formspree.io/f/test
           NEXT_PUBLIC_SITE_URL: https://example.com
           KV_REST_API_URL: https://example.upstash.io

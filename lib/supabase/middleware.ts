@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
     return (
       req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
       req.headers.get('x-real-ip') ||
-      req.ip ||
+      (req as any).ip || // NextRequest may have ip property at runtime
       'unknown'
     );
   };
