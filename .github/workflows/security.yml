@@ -15,7 +15,20 @@ permissions:
   security-events: write
   pull-requests: write
 
+# Environment variables shared across all jobs
+env:
+  NODE_VERSION: '20'
+  # Build-time test environment variables (non-sensitive placeholders)
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test
+  FORMSPREE_ENDPOINT: https://formspree.io/f/test
+  NEXT_PUBLIC_SITE_URL: https://example.com
+  KV_REST_API_URL: https://example.upstash.io
+  KV_REST_API_TOKEN: example_token
+  KV_REST_API_READ_ONLY_TOKEN: example_ro_token
+
 jobs:
+  # Job 1: Dependency vulnerability scanning
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
@@ -26,7 +39,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -39,6 +52,7 @@ jobs:
       - name: Check for outdated dependencies
         run: npm outdated || true
 
+  # Job 2: Secret detection with TruffleHog
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
@@ -48,18 +62,19 @@ jobs:
         with:
           fetch-depth: 0 # Full history for secret scanning
 
-      - name: Run TruffleHog
+      - name: Run TruffleHog secret scanner
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          # Scan entire filesystem on push, only diff on PRs
+          # Scan entire filesystem on push, only diff on PRs for performance
           base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
           head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || 'HEAD' }}
           extra_args: --only-verified
         continue-on-error: false
 
-  lint-security:
-    name: Security Linting
+  # Job 3: Custom security verification script
+  custom-security-check:
+    name: Custom Security Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -68,19 +83,33 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run custom security verification
+        run: node verify-security.js
+
+  # Job 4: ESLint security linting
+  lint-security:
+    name: ESLint Security Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Run ESLint
+      - name: Run ESLint with zero warnings
         run: npx eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0
         continue-on-error: true
 
-      - name: Run security verification script
-        run: node verify-security.js
-
+  # Job 5: Security headers validation
   security-headers-check:
     name: Security Headers Validation
     runs-on: ubuntu-latest
@@ -88,18 +117,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Check security header configurations
+      - name: Verify security header files exist
         run: |
-          # Verify security header files exist
-          test -f lib/security/headers.ts || exit 1
-          test -f lib/security/csp.ts || exit 1
+          test -f lib/security/headers.ts || { echo "Missing headers.ts"; exit 1; }
+          test -f lib/security/csp.ts || { echo "Missing csp.ts"; exit 1; }
 
-          # Check for CSP configuration
-          grep -q "Content-Security-Policy" lib/security/headers.ts || exit 1
-          grep -q "Strict-Transport-Security" lib/security/headers.ts || exit 1
+      - name: Validate security header configuration
+        run: |
+          grep -q "Content-Security-Policy" lib/security/headers.ts || { echo "Missing CSP config"; exit 1; }
+          grep -q "Strict-Transport-Security" lib/security/headers.ts || { echo "Missing HSTS config"; exit 1; }
+          grep -q "X-Frame-Options" lib/security/headers.ts || { echo "Missing X-Frame-Options"; exit 1; }
+          grep -q "X-Content-Type-Options" lib/security/headers.ts || { echo "Missing X-Content-Type-Options"; exit 1; }
+          echo "✓ All required security headers validated"
 
-          echo "Security headers configuration validated"
-
+  # Job 6: TypeScript type checking and build verification
   build-test:
     name: Build & Type Check
     runs-on: ubuntu-latest
@@ -110,30 +141,49 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
+      - name: TypeScript type checking
         run: npx tsc --noEmit
 
       - name: Build application
         run: npm run build
         env:
-          # Use dummy values for build
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
-          # Using Google's official test keys (see: https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do)
-          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.TEST_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI' }}
-          RECAPTCHA_SECRET_KEY: ${{ secrets.TEST_RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe' }}
-          FORMSPREE_ENDPOINT: https://formspree.io/f/test
-          NEXT_PUBLIC_SITE_URL: https://example.com
-          KV_REST_API_URL: https://example.upstash.io
-          KV_REST_API_TOKEN: example_token
-          KV_REST_API_READ_ONLY_TOKEN: example_ro_token
+          # reCAPTCHA test keys from GitHub Secrets
+          # These are Google's official test keys for automated testing
+          # Docs: https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.TEST_RECAPTCHA_SITE_KEY }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.TEST_RECAPTCHA_SECRET_KEY }}
 
+  # Job 7: Unit tests with Vitest
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Generate coverage report
+        run: npm run test:coverage
+        continue-on-error: true
+
+  # Job 8: License compliance check
   license-check:
     name: License Compliance
     runs-on: ubuntu-latest
@@ -144,42 +194,78 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check licenses
+      - name: Verify license compliance
         run: |
           npx license-checker --summary --production \
             --onlyAllow 'MIT;ISC;BSD;BSD-2-Clause;BSD-3-Clause;Apache-2.0;0BSD;CC0-1.0;Unlicense;WTFPL;LGPL-3.0-or-later;CC-BY-4.0;UNLICENSED;MIT-0;BlueOak-1.0.0;(MPL-2.0 OR Apache-2.0)'
 
+  # Job 9: Security summary and gating
   security-summary:
-    name: Security Summary
+    name: Security Summary & Gate
     runs-on: ubuntu-latest
-    needs: [dependency-scan, secret-scan, lint-security, security-headers-check, build-test, license-check]
+    needs:
+      - dependency-scan
+      - secret-scan
+      - custom-security-check
+      - lint-security
+      - security-headers-check
+      - build-test
+      - unit-tests
+      - license-check
     if: always()
     steps:
-      - name: Check job statuses
+      - name: Check all job statuses
         run: |
-          echo "Dependency Scan: ${{ needs.dependency-scan.result }}"
-          echo "Secret Scan: ${{ needs.secret-scan.result }}"
-          echo "Security Lint: ${{ needs.lint-security.result }}"
-          echo "Headers Check: ${{ needs.security-headers-check.result }}"
-          echo "Build Test: ${{ needs.build-test.result }}"
-          echo "License Check: ${{ needs.license-check.result }}"
+          echo "📊 Security Pipeline Results:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Dependency Scan:      ${{ needs.dependency-scan.result }}"
+          echo "Secret Detection:     ${{ needs.secret-scan.result }}"
+          echo "Custom Security:      ${{ needs.custom-security-check.result }}"
+          echo "ESLint Security:      ${{ needs.lint-security.result }}"
+          echo "Security Headers:     ${{ needs.security-headers-check.result }}"
+          echo "Build & Type Check:   ${{ needs.build-test.result }}"
+          echo "Unit Tests:           ${{ needs.unit-tests.result }}"
+          echo "License Compliance:   ${{ needs.license-check.result }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      - name: Overall status
+      - name: Evaluate security gate
         run: |
+          # Critical checks that must pass
           if [[ "${{ needs.secret-scan.result }}" == "failure" ]]; then
-            echo "CRITICAL: Secret scan failed - secrets may be exposed!"
+            echo "❌ CRITICAL: Secret scan failed - secrets may be exposed!"
+            echo "Action required: Review TruffleHog findings and remove secrets"
+            exit 1
+          fi
+
+          if [[ "${{ needs.custom-security-check.result }}" == "failure" ]]; then
+            echo "❌ CRITICAL: Custom security verification failed"
+            echo "Action required: Review verify-security.js output"
             exit 1
           fi
 
           if [[ "${{ needs.build-test.result }}" == "failure" ]]; then
-            echo "ERROR: Build failed - deployment blocked"
+            echo "❌ ERROR: Build failed - deployment blocked"
+            echo "Action required: Fix TypeScript errors and build issues"
             exit 1
           fi
 
-          echo "Security checks completed"
+          if [[ "${{ needs.unit-tests.result }}" == "failure" ]]; then
+            echo "⚠️  WARNING: Unit tests failed"
+            echo "Action required: Fix failing tests before merging"
+            exit 1
+          fi
+
+          if [[ "${{ needs.security-headers-check.result }}" == "failure" ]]; then
+            echo "❌ ERROR: Security headers validation failed"
+            echo "Action required: Ensure all security headers are configured"
+            exit 1
+          fi
+
+          echo "✅ All critical security checks passed!"
+          echo "Security gate: APPROVED"

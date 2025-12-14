@@ -96,8 +96,14 @@ See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA setup.
    INSERT INTO admin_users (email) VALUES ('your-email@example.com');
    ```
 4. Configure OAuth providers (Google/GitHub) in Supabase Authentication
+5. **Set up GitHub Secrets for CI/CD** (required for GitHub Actions):
+   - Go to: `Repository Settings` → `Secrets and variables` → `Actions`
+   - Add these secrets:
+     - `TEST_RECAPTCHA_SITE_KEY`: `6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI`
+     - `TEST_RECAPTCHA_SECRET_KEY`: `6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe`
+   - These are Google's [official test keys](https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do) for automated testing
 
-Detailed instructions: [SETUP.md](SETUP.md) | Admin setup: [ADMIN-SETUP.md](ADMIN-SETUP.md)
+Detailed instructions: [SETUP.md](SETUP.md) | Admin setup: [ADMIN-SETUP.md](ADMIN-SETUP.md) | CI/CD: [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)
 
 ### Run Development Server
 
@@ -296,7 +302,7 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md) | Security migration: [SEC
 - **Input Validation & Sanitization** - DOMPurify for XSS, SQL injection pattern detection
 - **Security Headers** - CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 - **Automated Dependency Scanning** - Dependabot with weekly scans + auto-merge
-- **CI/CD Security Pipeline** - GitHub Actions (secret detection, vulnerability scanning, license checks)
+- **CI/CD Security Pipeline** - 9-job automated workflow (TruffleHog secret scanning, dependency auditing, ESLint security, TypeScript checking, unit tests, license compliance, security gate) - See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)
 - **Privacy Compliance** - GDPR/CCPA with comprehensive privacy policy
 - **Security Logging** - Event tracking and monitoring by severity
 - **🔒 Secure Logging & Data Protection (Dec 2025)**:

@@ -5,6 +5,8 @@ Complete guide for deploying the Emcogma website to production with Vercel and S
 ## Prerequisites
 
 - [x] Code committed to GitHub
+- [x] GitHub Secrets configured (TEST_RECAPTCHA_SITE_KEY, TEST_RECAPTCHA_SECRET_KEY)
+- [x] GitHub Actions security pipeline passing (see [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md))
 - [x] Supabase project created
 - [x] Database schema executed
 - [x] Google reCAPTCHA keys obtained
@@ -41,14 +43,21 @@ Includes: RLS policies, indexes, triggers, functions
 
 ### Method A: GitHub Integration (Recommended)
 
-1. **Push to GitHub**
+1. **Ensure CI/CD Pipeline Passes**
+- GitHub Actions security pipeline MUST pass before deployment
+- Verify all 9 security jobs succeed (secret scanning, type checking, tests, etc.)
+- Check workflow status at: `Actions` tab in GitHub repository
+- If failures occur, fix issues before proceeding
+- See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) for troubleshooting
+
+2. **Push to GitHub**
 ```bash
 git add .
 git commit -m "Production deployment"
 git push origin master
 ```
 
-2. **Import to Vercel**
+3. **Import to Vercel**
 - Go to [vercel.com](https://vercel.com) → New Project
 - Import your GitHub repository
 - Configure:
@@ -57,7 +66,7 @@ git push origin master
   - Build Command: `npm run build`
   - Output Directory: `.next`
 
-3. **Add Environment Variables**
+4. **Add Environment Variables**
 
 In Vercel Dashboard → Settings → Environment Variables:
 
