@@ -31,17 +31,11 @@ export default function ContactPage() {
         </div>
 
         {/* Additional Info */}
-        <div className="mt-16 grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div className="mt-16 grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
           <div className="card-cyber p-6 text-center">
             <div className="text-cyber-primary text-3xl mb-4">📧</div>
             <h3 className="text-xl font-bold mb-2">Email</h3>
             <p className="text-gray-400">We'll respond within 24 hours</p>
-          </div>
-
-          <div className="card-cyber p-6 text-center">
-            <div className="text-cyber-secondary text-3xl mb-4">💬</div>
-            <h3 className="text-xl font-bold mb-2">Chat</h3>
-            <p className="text-gray-400">Quick responses to your queries</p>
           </div>
 
           <div className="card-cyber p-6 text-center">

@@ -1,16 +1,18 @@
-import { redirect } from 'next/navigation';
-import { getAdminUser } from '@/lib/auth/admin';
+'use client';
 
-export default async function AdminLayout({
+import { ToastProvider } from '@/components/ui';
+import { ErrorBoundary } from '@/lib/errors';
+
+// Admin layout - auth is handled by middleware (proxy.ts)
+// This layout provides the wrapper for admin pages with toast notifications and error handling
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getAdminUser();
-
-  if (!user) {
-    redirect('/admin/login');
-  }
-
-  return <>{children}</>;
+  return (
+    <ErrorBoundary>
+      <ToastProvider>{children}</ToastProvider>
+    </ErrorBoundary>
+  );
 }

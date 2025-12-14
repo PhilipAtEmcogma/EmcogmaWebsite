@@ -9,8 +9,18 @@ import ArticlesManager from '@/components/admin/ArticlesManager';
 import ProductsManager from '@/components/admin/ProductsManager';
 import DemosManager from '@/components/admin/DemosManager';
 import CommentsManager from '@/components/admin/CommentsManager';
+import SubscribersManager from '@/components/admin/SubscribersManager';
+import ContactSubmissionsManager from '@/components/admin/ContactSubmissionsManager';
 
-type Tab = 'blogs' | 'projects' | 'articles' | 'products' | 'demos' | 'comments';
+type Tab =
+  | 'blogs'
+  | 'projects'
+  | 'articles'
+  | 'products'
+  | 'demos'
+  | 'comments'
+  | 'subscribers'
+  | 'contact';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -29,7 +39,10 @@ export default function AdminDashboard() {
       } = await supabase.auth.getUser();
       setUser(user);
     } catch (error) {
-      console.error('Error checking user:', error);
+      // Only log error details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking user:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -40,7 +53,10 @@ export default function AdminDashboard() {
       await supabase.auth.signOut();
       router.push('/admin/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      // Only log error details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error signing out:', error);
+      }
     }
   }
 
@@ -59,6 +75,8 @@ export default function AdminDashboard() {
     { id: 'products', label: 'Products', icon: '🛍️' },
     { id: 'demos', label: 'Demos', icon: '🎮' },
     { id: 'comments', label: 'Comments', icon: '💬' },
+    { id: 'subscribers', label: 'Subscribers', icon: '📧' },
+    { id: 'contact', label: 'Contact Forms', icon: '📬' },
   ];
 
   return (
@@ -118,6 +136,8 @@ export default function AdminDashboard() {
           {activeTab === 'products' && <ProductsManager />}
           {activeTab === 'demos' && <DemosManager />}
           {activeTab === 'comments' && <CommentsManager />}
+          {activeTab === 'subscribers' && <SubscribersManager />}
+          {activeTab === 'contact' && <ContactSubmissionsManager />}
         </div>
       </div>
     </div>

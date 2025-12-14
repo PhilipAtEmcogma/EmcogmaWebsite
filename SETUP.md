@@ -31,42 +31,41 @@ Edit `.env.local` with your project details:
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=your-project-url.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-ADMIN_EMAIL=your-admin-email@example.com
 
 # Google reCAPTCHA v2 (get from https://www.google.com/recaptcha/admin)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-recaptcha-site-key
 RECAPTCHA_SECRET_KEY=your-recaptcha-secret-key
+
+# Vercel KV (REQUIRED for production - distributed rate limiting & CSRF)
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=your-kv-token
+KV_REST_API_READ_ONLY_TOKEN=your-kv-read-only-token
+
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
+
+**Note:** `ADMIN_EMAIL` is no longer used. Admin access is now managed via the `admin_users` table in Supabase.
 
 See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA configuration.
 
 ### 3. Set Up Supabase Database
-
-#### 3.1 Initial Schema (if new project)
 
 1. Go to your Supabase project dashboard
 2. Navigate to the SQL Editor
 3. Copy the contents of `lib/supabase/schema.sql`
 4. Run the SQL to create tables and set up Row Level Security
 
-#### 3.2 Migrate to Secure Schema (RECOMMENDED)
+**This schema includes:**
+- ✅ `admin_users` table for database-driven admin access
+- ✅ `is_admin()` function for centralized admin checking
+- ✅ Secure RLS policies with no hardcoded emails
+- ✅ All content tables (blog_posts, projects, articles, products, demos, comments, subscribers, contact_submissions)
 
-For enhanced security with database-driven admin management:
-
-1. Navigate to the SQL Editor in Supabase
-2. Copy the contents of `lib/supabase/migrate-to-secure-schema-safe.sql`
-3. Run the migration script (confirm when prompted about destructive operations)
-
-This migration:
-- Creates `admin_users` table for database-driven admin access
-- Creates `is_admin()` function for centralized admin checking
-- Removes hardcoded emails from RLS policies
-- Adds your admin email to the database
-
-**Benefits:**
-- ✅ No hardcoded emails in RLS policies
-- ✅ Add/remove admins via SQL without code changes
-- ✅ Centralized admin verification logic
+5. **Add your admin email** to the database:
+   ```sql
+   INSERT INTO admin_users (email) VALUES ('emcogma@gmail.com');
+   ```
 
 ### 4. Configure OAuth Providers
 
@@ -76,8 +75,6 @@ In your Supabase dashboard:
 2. Enable **Google OAuth** and/or **GitHub OAuth**
 3. Configure redirect URLs (see [ADMIN-SETUP.md](ADMIN-SETUP.md) for details)
 4. Set Site URL to your development and production URLs
-
-Your admin email (`emcogma@gmail.com`) is automatically added to the `admin_users` table by the migration script.
 
 ### 5. Run Development Server
 
@@ -183,10 +180,11 @@ In your Vercel project settings, add:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `ADMIN_EMAIL`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `RECAPTCHA_SECRET_KEY`
 - `SITE_URL` (your production URL)
+
+**Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in Supabase.
 
 ## Supabase Configuration
 

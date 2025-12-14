@@ -1,22 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import {
+  performSecurityCheck,
+  RATE_LIMITS,
+  createSecureApiResponse,
+  getRequestContext,
+  SecurityLog,
+  validateContactForm,
+} from '@/lib/security';
 
 export async function POST(request: NextRequest) {
+  const context = getRequestContext(request);
+
   try {
+    // Security check: Strict rate limiting for contact form + body size validation
+    const securityCheck = await performSecurityCheck(request, {
+      rateLimit: RATE_LIMITS.contact,
+      validateBody: true,
+      maxBodySize: 10 * 1024, // 10KB max
+    });
+
+    if (!securityCheck.passed) {
+      return securityCheck.response!;
+    }
+
     const body = await request.json();
     const { name, email, message, recaptchaToken } = body;
 
     // Validate required fields
     if (!name || !email || !message) {
-      return NextResponse.json(
+      SecurityLog.invalidInput(context, 'body', 'Missing required fields');
+      return createSecureApiResponse(
         { error: 'Missing required fields' },
-        { status: 400 }
+        400
       );
     }
 
     if (!recaptchaToken) {
-      return NextResponse.json(
+      SecurityLog.invalidInput(context, 'recaptchaToken', 'Missing reCAPTCHA token');
+      return createSecureApiResponse(
         { error: 'reCAPTCHA verification required' },
-        { status: 400 }
+        400
+      );
+    }
+
+    // Comprehensive input validation
+    const validation = validateContactForm({ name, email, message });
+
+    if (!validation.valid) {
+      const errorMessage = Object.values(validation.errors)[0];
+      SecurityLog.invalidInput(context, 'contact_form', errorMessage);
+      return createSecureApiResponse(
+        { error: errorMessage, errors: validation.errors },
+        400
       );
     }
 
@@ -25,24 +60,29 @@ export async function POST(request: NextRequest) {
 
     if (!secretKey) {
       console.error('RECAPTCHA_SECRET_KEY is not configured');
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Server configuration error' },
-        { status: 500 }
+        500
       );
     }
 
-    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify?secret=${secretKey}&response=${recaptchaToken}`;
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify`;
 
     const recaptchaResponse = await fetch(verifyUrl, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${secretKey}&response=${recaptchaToken}`,
     });
 
     const recaptchaData = await recaptchaResponse.json();
 
     if (!recaptchaData.success) {
-      return NextResponse.json(
-        { error: 'reCAPTCHA verification failed', details: recaptchaData['error-codes'] },
-        { status: 400 }
+      SecurityLog.suspiciousRequest(context, 'reCAPTCHA verification failed');
+      return createSecureApiResponse(
+        { error: 'reCAPTCHA verification failed' },
+        400
       );
     }
 
@@ -51,9 +91,9 @@ export async function POST(request: NextRequest) {
 
     if (!formspreeEndpoint) {
       console.error('FORMSPREE_ENDPOINT is not configured');
-      return NextResponse.json(
+      return createSecureApiResponse(
         { error: 'Server configuration error' },
-        { status: 500 }
+        500
       );
     }
 
@@ -63,33 +103,35 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name,
-        email,
-        message,
-        _subject: `New Contact Form Submission from ${name}`,
+        name: validation.sanitized.name,
+        email: validation.sanitized.email,
+        message: validation.sanitized.message,
+        _subject: `New Contact Form Submission from ${validation.sanitized.name}`,
       }),
     });
 
     if (!formspreeResponse.ok) {
-      return NextResponse.json(
+      console.error('Formspree submission failed');
+      return createSecureApiResponse(
         { error: 'Failed to send message' },
-        { status: 500 }
+        500
       );
     }
 
-    return NextResponse.json(
+    return createSecureApiResponse(
       {
         success: true,
         message: 'Message sent successfully!'
       },
-      { status: 200 }
+      200
     );
 
   } catch (error) {
     console.error('Contact form error:', error);
-    return NextResponse.json(
+    SecurityLog.suspiciousRequest(context, 'Unexpected error in POST /api/contact');
+    return createSecureApiResponse(
       { error: 'Internal server error' },
-      { status: 500 }
+      500
     );
   }
 }

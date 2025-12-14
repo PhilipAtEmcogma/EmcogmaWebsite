@@ -55,46 +55,28 @@ In Supabase dashboard:
 
 ## Step 2: Database Setup
 
-### 2.1 Initial Schema (if new project)
+Run the schema in your Supabase SQL editor:
 
-Run the initial schema in your Supabase SQL editor:
+1. Navigate to Supabase SQL Editor
+2. Copy the entire contents of `lib/supabase/schema.sql`
+3. Paste and run the SQL
 
-```bash
-# The schema is in: lib/supabase/schema.sql
+**This secure schema creates:**
+- `admin_users` table - Stores admin emails with active status
+- `is_admin()` function - Centralized admin checking
+- All content tables (blog_posts, projects, articles, products, demos, comments, subscribers, contact_submissions)
+- Secure RLS policies using `is_admin()` function (no hardcoded emails)
+
+**After running the schema, add your admin email:**
+```sql
+INSERT INTO admin_users (email) VALUES ('emcogma@gmail.com');
 ```
 
-### 2.2 Migrate to Secure Schema (RECOMMENDED)
-
-**Run the secure migration script** for enhanced security with database-driven admin management:
-
-```bash
-# The migration script is in: lib/supabase/migrate-to-secure-schema-safe.sql
-```
-
-This migration:
-1. Creates missing tables (articles, products, demos) if they don't exist
-2. Creates `admin_users` table for database-driven admin access
-3. Creates `is_admin()` function for centralized admin checking
-4. Drops old RLS policies with hardcoded emails
-5. Creates new secure RLS policies using `is_admin()` function
-6. Automatically adds `emcogma@gmail.com` to `admin_users` table
-
-**Benefits of Secure Schema:**
+**Benefits:**
 - ✅ No hardcoded emails in RLS policies
 - ✅ Easy admin management via SQL (no schema changes needed)
 - ✅ Centralized admin verification logic
 - ✅ Add/remove admins instantly without code deployment
-
-**Tables Created:**
-- `admin_users` table (NEW - stores admin emails)
-- `blog_posts` table
-- `projects` table
-- `comments` table
-- `articles` table
-- `products` table
-- `demos` table
-- `subscribers` table
-- `contact_submissions` table
 
 ## Step 3: Verify Environment Variables
 
@@ -102,16 +84,23 @@ Ensure your `.env.local` file contains:
 
 ```env
 # Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://kuafldiotehblyuvnwgu.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 
-# Admin Email (whitelisted for admin access)
-ADMIN_EMAIL=emcogma@gmail.com
+# Vercel KV (REQUIRED for production)
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=your_kv_token
+KV_REST_API_READ_ONLY_TOKEN=your_kv_read_only_token
 
-# reCAPTCHA (optional for admin)
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+
+# reCAPTCHA (for contact form)
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_site_key
 RECAPTCHA_SECRET_KEY=your_secret_key
 ```
+
+**Note:** Admin access is managed via the `admin_users` table in Supabase (no environment variable needed).
 
 ## Step 4: Access the Admin Portal
 
