@@ -16,7 +16,10 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 **Admin Portal (Full CRUD):**
 - OAuth authentication (Google, GitHub) with database-driven admin whitelist
 - Database-managed admin access via `admin_users` table
-- **10-minute session timeout** - Auto-logout after inactivity for security
+- **Enhanced Session Security** - Triple-layer protection:
+  - **10-minute inactivity timeout** - Auto-logout after no activity
+  - **Browser closure detection** - Session cookies expire when browser closes
+  - **IP address validation** - Auto-logout if IP address changes
 - **Generic CRUD system** - Refactored from ~2,000 lines to ~1,700 lines (16% reduction)
   - Blog posts management (create, edit, delete, publish)
   - Projects management with tech stack and featured status
@@ -39,7 +42,7 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Updated brand messaging: "EMCOGMA is a hub for future-focused engineering..."
 - Responsive layout with sticky navigation
 - SEO optimization (sitemap, robots.txt, Open Graph, metadata)
-- Contact form with Google reCAPTCHA v2 + Formspree integration
+- Contact form with Google reCAPTCHA v2 + Formspree integration (email-only, no live chat)
 - Social sharing (Twitter, LinkedIn, Copy Link)
 
 **Infrastructure & Security:**
@@ -51,7 +54,10 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - ISR for performance optimization (60s revalidation)
 - Static params generation with cookie-free client for Next.js 15+ compatibility
 - Middleware for session management and admin authorization
-- **10-minute inactivity timeout** with automatic session termination
+- **Enhanced session security** with triple-layer protection:
+  - 10-minute inactivity timeout with automatic session termination
+  - Browser closure detection via session cookies (no persistence)
+  - IP address change detection with automatic logout
 - Row-Level Security on all tables with granular access control
 - **Enterprise Security (OWASP Top 10 2021 - 100% Compliant, A-Grade):**
   - **Distributed rate limiting** via Vercel KV (production-ready for serverless)
@@ -413,6 +419,17 @@ npm run test:coverage   # Run tests with coverage report
     - Added contact form subject minimum length validation (3 chars)
     - Fixed stringToTags test expectation for empty strings
   - **Remaining Vulnerabilities:** 7 moderate (dev-only, no production impact)
+- **🔒 Enhanced Session Security (December 14, 2025):**
+  - **Fixed middleware activation** - Corrected proxy.ts export naming for Next.js 16
+  - **Triple-layer session protection:**
+    - 10-minute inactivity timeout with automatic logout
+    - Browser closure detection (session cookies with no persistence)
+    - IP address change detection with automatic logout
+  - **Session cookies** - No maxAge parameter ensures cookies expire when browser closes
+  - **OAuth callback handling** - Proper first-login detection to avoid false timeouts
+  - **Debug logging** - Comprehensive session tracking for monitoring
+  - **Error messages** - User-friendly notifications for session expiry reasons
+  - **Contact page cleanup** - Removed live chat section (email-only communication)
 
 ## Next Steps
 
@@ -462,9 +479,13 @@ WHERE email = 'admin@example.com';
 - Lowercase enforcement for consistent email handling
 - Soft deletion via `active` flag (preserves audit history)
 - Composite indexes for optimal `is_admin()` performance
-- **10-minute inactivity timeout** - Sessions expire automatically
+- **Enhanced session security** - Triple-layer protection:
+  - **10-minute inactivity timeout** - Tracks last activity, auto-logout after 10 min idle
+  - **Browser closure detection** - Session cookies (no maxAge) expire when browser closes
+  - **IP address validation** - Stores session IP, logs out if IP changes mid-session
 - HTTP-only cookies prevent XSS attacks on session data
 - Secure cookie flags in production (HTTPS-only)
+- Debug logging for session monitoring and troubleshooting
 
 See [ADMIN-SETUP.md](ADMIN-SETUP.md) for detailed setup and usage guide.
 

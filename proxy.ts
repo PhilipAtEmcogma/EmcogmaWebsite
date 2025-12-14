@@ -1,6 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
+// Next.js 16 requires the export to be named 'proxy' when using proxy.ts
 export async function proxy(request: NextRequest) {
   return await updateSession(request);
 }

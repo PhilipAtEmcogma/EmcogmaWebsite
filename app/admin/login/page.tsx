@@ -16,6 +16,10 @@ function LoginForm() {
       setError('Unauthorized: Only admin users can access this area.');
     } else if (errorParam === 'session_timeout') {
       setError('Your session has expired due to inactivity. Please sign in again.');
+    } else if (errorParam === 'session_invalid') {
+      setError('Your session is invalid. Please sign in again.');
+    } else if (errorParam === 'ip_changed') {
+      setError('Your IP address has changed. For security, please sign in again.');
     } else if (errorParam === 'auth_failed') {
       setError('Authentication failed. Please try again.');
     }

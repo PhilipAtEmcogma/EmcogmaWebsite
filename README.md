@@ -20,9 +20,9 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 - **Dynamic Blog** - Posts fetched from Supabase with ISR, markdown rendering, comment system
 - **Portfolio Showcase** - Projects with featured status, category filtering
 - **Comments System** - Moderation workflow (submit for approval, approved comments display)
-- **Contact Form** - Google reCAPTCHA v2 verification + Formspree email delivery
+- **Contact Form** - Google reCAPTCHA v2 verification + Formspree email delivery (email-only, no live chat)
 - **SaaS Landing** - Dynamic pricing from database, features, testimonials, FAQ
-- **Admin Portal** - Full CRUD for 8 content types with OAuth authentication
+- **Admin Portal** - Full CRUD for 8 content types with OAuth authentication + enhanced session security
 - **Subscriber Management** - Newsletter subscribers with secure CSV export (7-layer security)
 - **Contact Management** - Manage contact form submissions (editable & deletable)
 
@@ -270,11 +270,15 @@ Full deployment guide: [DEPLOYMENT.md](DEPLOYMENT.md) | Security migration: [SEC
 ## 🔐 Security
 
 ### Authentication & Session Management
-- **10-minute Inactivity Timeout** - Sessions automatically expire after 10 minutes of idle time
+- **Enhanced Triple-Layer Session Security:**
+  - **10-minute Inactivity Timeout** - Tracks last activity, auto-logout after 10 min idle
+  - **Browser Closure Detection** - Session cookies (no maxAge) expire when browser closes
+  - **IP Address Validation** - Stores session IP, logs out if IP changes mid-session
 - **HTTP-only Cookies** - Session tracking cookies protected from XSS attacks
 - **Secure Cookie Flags** - HTTPS-only transmission in production
 - **Database-driven Admin Access** - `admin_users` table eliminates hardcoded emails
 - **OAuth Providers** - Secure login via Google and GitHub
+- **Debug Logging** - Comprehensive session tracking for monitoring (dev mode)
 
 ### Data Protection
 - **Secure RLS Policies** - Centralized `is_admin()` function for all admin checks
