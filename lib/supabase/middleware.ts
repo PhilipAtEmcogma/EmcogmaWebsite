@@ -12,6 +12,15 @@ import {
 } from '@/lib/session';
 
 export async function updateSession(request: NextRequest) {
+  // Normalize URLs by removing trailing slashes (except root)
+  // This ensures consistent route matching and prevents duplicate content issues
+  const pathname = request.nextUrl.pathname;
+  if (pathname !== '/' && pathname.endsWith('/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.slice(0, -1);
+    return NextResponse.redirect(url, { status: 308 }); // Permanent redirect
+  }
+
   // Generate nonce for CSP (if enabled)
   const nonce = generateNonce();
 

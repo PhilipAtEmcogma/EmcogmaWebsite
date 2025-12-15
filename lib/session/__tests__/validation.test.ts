@@ -360,8 +360,7 @@ describe('Session Validation Module', () => {
     });
 
     it('should set secure flag in production environment', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
 
       const response = createMockResponse();
       const currentIP = '192.168.1.1';
@@ -374,12 +373,11 @@ describe('Session Validation Module', () => {
         expect.objectContaining({ secure: true })
       );
 
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
 
     it('should not set secure flag in development environment', () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
 
       const response = createMockResponse();
       const currentIP = '192.168.1.1';
@@ -392,7 +390,7 @@ describe('Session Validation Module', () => {
         expect.objectContaining({ secure: false })
       );
 
-      process.env.NODE_ENV = originalEnv;
+      vi.unstubAllEnvs();
     });
   });
 
@@ -435,14 +433,15 @@ describe('Session Validation Module', () => {
 
     it('should handle future timestamps gracefully', async () => {
       const futureTimestamp = new Date('2030-01-01').getTime();
-      const request = createMockRequest({});
+      const request = createMockRequest({ pathname: '/admin/dashboard' });
       const lastActivityCookie = { value: futureTimestamp.toString() };
       const supabase = createMockSupabase() as unknown as SupabaseClient;
 
       const result = await validateSessionTimeout(request, lastActivityCookie, supabase);
 
-      // Future timestamp means no timeout yet
-      expect(result.shouldRedirect).toBe(false);
+      // Future timestamps are invalid (possible clock tampering) - should redirect
+      expect(result.shouldRedirect).toBe(true);
+      expect(supabase.auth.signOut).toHaveBeenCalled();
     });
 
     it('should handle IPv6 addresses in IP validation', async () => {
