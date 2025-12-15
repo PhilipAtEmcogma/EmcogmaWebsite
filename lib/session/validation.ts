@@ -12,21 +12,60 @@ export interface SessionValidationResult {
 }
 
 /**
- * Session timeout configuration
+ * Session timeout configuration (default: 10 minutes)
  */
 export const SESSION_TIMEOUT_MS =
   parseInt(process.env.SESSION_TIMEOUT_MINUTES || '10', 10) * 60 * 1000;
 
 /**
+ * Helper function to create session expiry redirect response
+ * Consolidates redirect logic to reduce duplication (DRY principle)
+ *
+ * @param request - Next.js request object
+ * @param errorType - Error type for query parameter (session_timeout | session_invalid | ip_changed)
+ * @returns Redirect response with cleared cookies and security headers
+ */
+function createSessionExpiredRedirect(
+  request: NextRequest,
+  errorType: 'session_timeout' | 'session_invalid' | 'ip_changed'
+): { url: URL; response: NextResponse } {
+  const url = new URL('/admin/login', request.url);
+  url.searchParams.set('error', errorType);
+  const response = NextResponse.redirect(url);
+  response.cookies.delete('last_activity');
+  response.cookies.delete('session_ip');
+
+  const securityHeaders = getSecurityHeaders();
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    if (value) response.headers.set(key, value);
+  });
+
+  return { url, response };
+}
+
+/**
  * Check if user just completed OAuth callback
+ *
+ * @param request - Next.js request object
+ * @returns True if oauth_callback cookie exists with a truthy value
  */
 export function isOAuthCallback(request: NextRequest): boolean {
-  return !!request.cookies.get('oauth_callback');
+  const cookie = request.cookies.get('oauth_callback');
+  return !!cookie && !!cookie.value; // Validate both cookie existence and value
 }
 
 /**
  * Validate session activity timeout
- * Returns redirect response if session expired
+ *
+ * Checks for:
+ * - Missing last_activity cookie (browser reopen detection)
+ * - Invalid timestamp values (NaN, negative, future dates)
+ * - Session timeout (configurable via SESSION_TIMEOUT_MS)
+ *
+ * @param request - Next.js request object
+ * @param lastActivityCookie - Cookie containing last activity timestamp
+ * @param supabase - Supabase client for sign out
+ * @returns SessionValidationResult indicating whether to redirect
  */
 export async function validateSessionTimeout(
   request: NextRequest,
@@ -47,17 +86,7 @@ export async function validateSessionTimeout(
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
-      const url = new URL('/admin/login', request.url);
-      url.searchParams.set('error', 'session_timeout');
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('last_activity');
-      response.cookies.delete('session_ip');
-
-      const securityHeaders = getSecurityHeaders();
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
-      });
-
+      const { url, response } = createSessionExpiredRedirect(request, 'session_timeout');
       return { shouldRedirect: true, redirectUrl: url, response };
     }
 
@@ -66,22 +95,12 @@ export async function validateSessionTimeout(
 
   // Validate cookie value is a valid number
   const lastActivity = parseInt(lastActivityCookie.value, 10);
-  if (isNaN(lastActivity)) {
-    console.log('[Invalid Session] Cookie value is not a valid timestamp');
+  if (isNaN(lastActivity) || lastActivity < 0) {
+    console.log('[Invalid Session] Cookie value is not a valid timestamp:', lastActivityCookie.value);
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
-      const url = new URL('/admin/login', request.url);
-      url.searchParams.set('error', 'session_invalid');
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('last_activity');
-      response.cookies.delete('session_ip');
-
-      const securityHeaders = getSecurityHeaders();
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
-      });
-
+      const { url, response } = createSessionExpiredRedirect(request, 'session_invalid');
       return { shouldRedirect: true, redirectUrl: url, response };
     }
 
@@ -90,6 +109,24 @@ export async function validateSessionTimeout(
 
   // Check if session has timed out
   const timeSinceActivity = now - lastActivity;
+
+  // Validate timestamp is not unrealistically in the future
+  if (timeSinceActivity < 0) {
+    console.log('[Invalid Session] Future timestamp detected:', {
+      lastActivity,
+      now,
+      difference: timeSinceActivity,
+    });
+    await supabase.auth.signOut();
+
+    if (request.nextUrl.pathname !== '/admin/login') {
+      const { url, response } = createSessionExpiredRedirect(request, 'session_invalid');
+      return { shouldRedirect: true, redirectUrl: url, response };
+    }
+
+    return { shouldRedirect: false };
+  }
+
   console.log('[Timeout Check]', {
     lastActivity,
     timeSinceActivity,
@@ -102,17 +139,7 @@ export async function validateSessionTimeout(
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
-      const url = new URL('/admin/login', request.url);
-      url.searchParams.set('error', 'session_timeout');
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('last_activity');
-      response.cookies.delete('session_ip');
-
-      const securityHeaders = getSecurityHeaders();
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
-      });
-
+      const { url, response } = createSessionExpiredRedirect(request, 'session_timeout');
       return { shouldRedirect: true, redirectUrl: url, response };
     }
   }
@@ -122,7 +149,15 @@ export async function validateSessionTimeout(
 
 /**
  * Validate session IP address hasn't changed
- * Returns redirect response if IP changed (security measure)
+ *
+ * Security measure to detect session hijacking. Logs out user if IP address
+ * changes during an active session.
+ *
+ * @param request - Next.js request object
+ * @param sessionIpCookie - Cookie containing stored session IP
+ * @param currentIP - Current request IP address
+ * @param supabase - Supabase client for sign out
+ * @returns SessionValidationResult indicating whether to redirect
  */
 export async function validateSessionIP(
   request: NextRequest,
@@ -140,17 +175,7 @@ export async function validateSessionIP(
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
-      const url = new URL('/admin/login', request.url);
-      url.searchParams.set('error', 'ip_changed');
-      const response = NextResponse.redirect(url);
-      response.cookies.delete('last_activity');
-      response.cookies.delete('session_ip');
-
-      const securityHeaders = getSecurityHeaders();
-      Object.entries(securityHeaders).forEach(([key, value]) => {
-        if (value) response.headers.set(key, value);
-      });
-
+      const { url, response } = createSessionExpiredRedirect(request, 'ip_changed');
       return { shouldRedirect: true, redirectUrl: url, response };
     }
   }
@@ -160,7 +185,12 @@ export async function validateSessionIP(
 
 /**
  * Update session cookies with current timestamp and IP
- * Uses session cookies (no maxAge) so they expire on browser close
+ *
+ * Sets HTTP-only session cookies (no maxAge) that expire when browser closes.
+ * This enables browser closure detection as part of triple-layer session security.
+ *
+ * @param response - Next.js response object to set cookies on
+ * @param currentIP - Current request IP address to store
  */
 export function updateSessionCookies(
   response: NextResponse,
@@ -190,6 +220,12 @@ export function updateSessionCookies(
 
 /**
  * Clean up OAuth callback cookie after first login
+ *
+ * Removes the oauth_callback marker cookie after the initial authentication
+ * flow completes to prevent false positives in session timeout detection.
+ *
+ * @param response - Next.js response object to delete cookie from
+ * @param request - Next.js request object to check for cookie
  */
 export function cleanupOAuthCallback(response: NextResponse, request: NextRequest): void {
   if (isOAuthCallback(request)) {
