@@ -6,6 +6,7 @@ Comprehensive guide to the automated security scanning and CI/CD pipeline for th
 
 - [Overview](#overview)
 - [Pipeline Architecture](#pipeline-architecture)
+- [Workflows](#workflows)
 - [Required Secrets](#required-secrets)
 - [Security Jobs](#security-jobs)
 - [Configuration](#configuration)
@@ -33,9 +34,50 @@ The security pipeline runs automatically on:
 
 ---
 
+## Workflows
+
+The repository includes two GitHub Actions workflows:
+
+### 1. Security Scan (`security.yml`)
+
+**Status:** ✅ **ACTIVE** - Runs on all pushes and PRs
+
+Main security pipeline with 9 parallel jobs for comprehensive security scanning.
+
+### 2. Claude Code Review (`claude-code-review.yml`)
+
+**Status:** ⚠️ **DISABLED** - Manual trigger only (`workflow_dispatch`)
+
+**Why Disabled:**
+The Claude Code Review action requires `CLAUDE_CODE_OAUTH_TOKEN` to be configured in GitHub Secrets. Until this is set up, the workflow is disabled to prevent Dependabot PRs from failing.
+
+**To Enable:**
+1. Get OAuth token from [https://claude.ai/settings](https://claude.ai/settings)
+2. Add `CLAUDE_CODE_OAUTH_TOKEN` to GitHub Secrets:
+   ```
+   Settings → Secrets and variables → Actions → New repository secret
+   Name: CLAUDE_CODE_OAUTH_TOKEN
+   Value: <your-oauth-token>
+   ```
+3. Uncomment the `pull_request` trigger in [.github/workflows/claude-code-review.yml](.github/workflows/claude-code-review.yml):
+   ```yaml
+   on:
+     workflow_dispatch: # Manual trigger
+     pull_request:      # Auto-trigger on PRs (uncomment this)
+       types: [opened, synchronize]
+   ```
+
+**Features (when enabled):**
+- Automated PR code reviews using Claude AI
+- Security analysis and best practices feedback
+- Test coverage recommendations
+- Performance optimization suggestions
+
+---
+
 ## Pipeline Architecture
 
-The pipeline consists of **9 parallel jobs** that run independently for maximum performance:
+The **Security Scan** pipeline consists of **9 parallel jobs** that run independently for maximum performance:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -586,6 +628,14 @@ This pipeline ensures compliance with:
 
 ---
 
-**Last Updated:** December 14, 2025
-**Version:** 2.0.0
+**Last Updated:** December 15, 2025
+**Version:** 2.1.0
 **Status:** Production-Ready ✅
+
+### Recent Changes
+
+**December 15, 2025:**
+- Disabled Claude Code Review workflow until API token is configured
+- Prevents Dependabot PRs from failing due to missing credentials
+- Added comprehensive setup instructions for Claude Code Review
+- All 9 Dependabot PRs successfully rebased and passing checks

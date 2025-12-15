@@ -468,6 +468,13 @@ npm run test:coverage   # Run tests with coverage report
   - **Debug logging** - Comprehensive session tracking for monitoring
   - **Error messages** - User-friendly notifications for session expiry reasons
   - **Contact page cleanup** - Removed live chat section (email-only communication)
+- **🔧 GitHub Actions Workflow Fix (December 15, 2025):**
+  - **Disabled Claude Code Review workflow** - Preventing Dependabot PR failures
+  - **Root cause:** Missing `CLAUDE_CODE_OAUTH_TOKEN` secret in repository settings
+  - **Solution:** Changed workflow to `workflow_dispatch` (manual trigger only)
+  - **All 9 Dependabot PRs rebased** - Now passing security checks successfully
+  - **Added setup documentation** - Instructions to re-enable workflow when ready
+  - See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) for complete workflow documentation
 
 ## Next Steps
 
