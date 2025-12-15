@@ -20,7 +20,7 @@
     "@types/react-google-recaptcha": "^2.1.9",
     "@vercel/kv": "^3.0.0",
     "clsx": "^2.1.1",
-    "framer-motion": "^11.0.3",
+    "framer-motion": "^12.23.26",
     "isomorphic-dompurify": "^2.33.0",
     "next": "^16.0.8",
     "react": "^19.2.1",
