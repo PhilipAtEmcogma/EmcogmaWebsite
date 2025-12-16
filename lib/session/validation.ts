@@ -82,7 +82,6 @@ export async function validateSessionTimeout(
     }
 
     // Browser was closed and reopened - session cookie expired
-    console.log('[Browser Reopen Detected] No last_activity cookie - logging out');
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
@@ -96,7 +95,6 @@ export async function validateSessionTimeout(
   // Validate cookie value is a valid number
   const lastActivity = parseInt(lastActivityCookie.value, 10);
   if (isNaN(lastActivity) || lastActivity < 0) {
-    console.log('[Invalid Session] Cookie value is not a valid timestamp:', lastActivityCookie.value);
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
@@ -112,11 +110,6 @@ export async function validateSessionTimeout(
 
   // Validate timestamp is not unrealistically in the future
   if (timeSinceActivity < 0) {
-    console.log('[Invalid Session] Future timestamp detected:', {
-      lastActivity,
-      now,
-      difference: timeSinceActivity,
-    });
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
@@ -127,15 +120,7 @@ export async function validateSessionTimeout(
     return { shouldRedirect: false };
   }
 
-  console.log('[Timeout Check]', {
-    lastActivity,
-    timeSinceActivity,
-    timeoutThreshold: SESSION_TIMEOUT_MS,
-    willTimeout: timeSinceActivity > SESSION_TIMEOUT_MS,
-  });
-
   if (timeSinceActivity > SESSION_TIMEOUT_MS) {
-    console.log('[Session Timeout] Inactive for', timeSinceActivity, 'ms');
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
@@ -171,7 +156,6 @@ export async function validateSessionIP(
   }
 
   if (sessionIpCookie.value !== currentIP) {
-    console.log('[IP Changed] Session IP changed from', sessionIpCookie.value, 'to', currentIP);
     await supabase.auth.signOut();
 
     if (request.nextUrl.pathname !== '/admin/login') {
@@ -211,11 +195,6 @@ export function updateSessionCookies(
     sameSite: 'lax',
     // No maxAge - session cookie (expires on browser close)
   });
-
-  console.log('[Session Updated]', {
-    lastActivity: now,
-    sessionIP: currentIP,
-  });
 }
 
 /**
@@ -230,6 +209,5 @@ export function updateSessionCookies(
 export function cleanupOAuthCallback(response: NextResponse, request: NextRequest): void {
   if (isOAuthCallback(request)) {
     response.cookies.delete('oauth_callback');
-    console.log('[OAuth] Cleaned up callback cookie');
   }
 }

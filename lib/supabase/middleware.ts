@@ -72,15 +72,6 @@ export async function updateSession(request: NextRequest) {
     const sessionIpCookie = request.cookies.get('session_ip');
     const currentIP = getClientIP(request);
 
-    console.log('[Session Check]', {
-      path: request.nextUrl.pathname,
-      hasLastActivity: !!lastActivityCookie,
-      hasSessionIp: !!sessionIpCookie,
-      currentIP,
-      storedIP: sessionIpCookie?.value,
-      lastActivity: lastActivityCookie?.value,
-    });
-
     // Validate session timeout
     const timeoutResult = await validateSessionTimeout(request, lastActivityCookie, supabase);
     if (timeoutResult.shouldRedirect && timeoutResult.response) {
