@@ -4,15 +4,16 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 
 **EMCOGMA is a hub for future-focused engineering.** We build intelligent systems, explore emerging technologies, and chronicle the ideas, research, and projects that chart the emerging horizon of a world co-authored by human imagination and machine intelligence.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.10-black)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2-61dafb)](https://react.dev/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.0.8-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.3-61dafb)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)](https://www.typescriptlang.org/)
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green)](https://supabase.com/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38bdf8)](https://tailwindcss.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4.19-38bdf8)](https://tailwindcss.com/)
 
-[![Tests](https://img.shields.io/badge/tests-191%20passing-success)](https://vitest.dev/)
+[![Tests](https://img.shields.io/badge/tests-266%20passing-success)](https://vitest.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-success)](https://www.typescriptlang.org/)
 [![Security](https://img.shields.io/badge/security-OWASP%20A+-success)](https://owasp.org/)
+[![Code Audit](https://img.shields.io/badge/audit-A+%20(98%2F100)-success)](CODE-AUDIT-REPORT.md)
 
 ## ✨ Features
 
@@ -25,6 +26,7 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 - **Admin Portal** - Full CRUD for 8 content types with OAuth authentication + enhanced session security
 - **Subscriber Management** - Newsletter subscribers with secure CSV export (7-layer security)
 - **Contact Management** - Manage contact form submissions (editable & deletable)
+- **Email Notifications** - Automated subscriber emails on new content with secure unsubscribe (Resend API, HMAC tokens)
 
 ### Technical Highlights
 - **SEO Optimized** - Auto-generated sitemap, robots.txt, Open Graph tags, PWA manifest
@@ -40,6 +42,7 @@ A cyberpunk-themed personal brand website built with Next.js 16, featuring dynam
 - Supabase account ([free tier](https://supabase.com))
 - Google reCAPTCHA keys ([get here](https://www.google.com/recaptcha/admin))
 - Formspree account ([free tier](https://formspree.io))
+- Resend account for email notifications ([free tier](https://resend.com) - 100 emails/day)
 
 ### Installation
 
@@ -76,6 +79,11 @@ RECAPTCHA_SECRET_KEY=your-secret-key
 KV_REST_API_URL=https://xxx.upstash.io
 KV_REST_API_TOKEN=your-kv-token
 KV_REST_API_READ_ONLY_TOKEN=your-kv-read-only-token
+
+# Email Notifications (Resend API - Optional but recommended)
+RESEND_API_KEY=re_your_api_key_here
+FROM_EMAIL=noreply@emcogma.com
+UNSUBSCRIBE_TOKEN_SECRET=your_long_random_secret_here
 
 # CORS Configuration (REQUIRED in production)
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
@@ -121,7 +129,7 @@ npm run test:ui       # Run tests with UI
 npm run test:coverage # Run with coverage report
 ```
 
-**Test Status:** ✅ 191/191 passing (100%)
+**Test Status:** ✅ 266/266 passing (100%)
 
 ## 🏗️ Architecture
 
@@ -230,12 +238,12 @@ Customize in [tailwind.config.ts](tailwind.config.ts)
 
 | Category | Technologies |
 |----------|-------------|
-| **Framework** | Next.js 16.0.0+ (App Router), React 19.2.1, TypeScript 5 |
-| **Styling** | Tailwind CSS 3.4.17, Framer Motion 11.0.3 |
-| **Backend** | Supabase (PostgreSQL, Auth, RLS), Vercel KV (distributed state) |
+| **Framework** | Next.js 16.0.8 (App Router), React 19.2.3, TypeScript 5 |
+| **Styling** | Tailwind CSS 3.4.19, Framer Motion 12.23.26 |
+| **Backend** | Supabase (PostgreSQL, Auth, RLS), Vercel KV (distributed state), Resend (email delivery) |
 | **Forms** | Formspree (email delivery), Google reCAPTCHA v2 |
-| **Validation** | Zod 3.25.76 (runtime validation, client/server shared schemas) |
-| **Security** | Vercel KV Rate Limiting, Distributed CSRF, Nonce-based CSP, DOMPurify, Dependabot, GitHub Actions |
+| **Validation** | Zod 4.2.0 (runtime validation, client/server shared schemas) |
+| **Security** | Vercel KV Rate Limiting, Distributed CSRF, Nonce-based CSP, DOMPurify, HMAC Token Signing, Dependabot, GitHub Actions |
 | **Build** | ESLint 9, PostCSS 8, next-sitemap 4.2.3 |
 | **Deployment** | Vercel (recommended) |
 
@@ -374,6 +382,79 @@ Submit contact form with reCAPTCHA verification.
 }
 ```
 
+### POST /api/subscribe
+Subscribe to email notifications.
+
+**Request:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Successfully subscribed! Check your email for confirmation."
+}
+```
+
+### POST /api/subscribe/check
+Check subscription status (secure - email in POST body, not URL).
+
+**Request:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "subscribed": true
+}
+```
+
+### POST /api/unsubscribe
+Unsubscribe using secure token.
+
+**Request:**
+```json
+{
+  "token": "uuid.timestamp.hmac-signature"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Successfully unsubscribed"
+}
+```
+
+### POST /api/notify-subscribers (Admin Only)
+Trigger email notifications to all subscribers.
+
+**Request:**
+```json
+{
+  "contentType": "blog_posts",
+  "slug": "my-new-post",
+  "title": "My New Post",
+  "excerpt": "Check out this amazing content!"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Notifications sent successfully",
+  "sent": 150,
+  "failed": 0
+}
+```
+
 ## 🎯 Status & Roadmap
 
 ### ✅ Completed
@@ -408,8 +489,30 @@ Submit contact form with reCAPTCHA verification.
   - [x] 7-layer CSV export security (session, rate limit, CSRF, server-side, injection prevention, audit, HTTPS)
   - [x] Dynamic homepage (all sections fetch from database with empty states)
 
+### ✅ Latest Updates (December 16, 2025)
+- [x] **Email Notification System** - Complete implementation with Resend API integration
+  - [x] Automated notifications when new content is published (blog, articles, products, demos)
+  - [x] Welcome emails for new subscribers with secure unsubscribe links
+  - [x] HMAC-SHA256 token-based unsubscribe system (90-day expiration)
+  - [x] Zero email exposure security (emails never in URLs, tokens, or logs)
+  - [x] UUID-based tokens instead of email addresses
+  - [x] Cyberpunk-themed HTML email templates
+  - [x] Admin notification controls in dashboard
+  - [x] Rate limiting (100ms between emails)
+  - [x] Multi-format emails (HTML + plain text)
+  - [x] GDPR compliant (soft delete, unsubscribe history)
+  - See [EMAIL-QUICKSTART.md](EMAIL-QUICKSTART.md), [EMAIL-NOTIFICATIONS-SETUP.md](EMAIL-NOTIFICATIONS-SETUP.md), [EMAIL-SECURITY-SUMMARY.md](EMAIL-SECURITY-SUMMARY.md)
+
+- **🔧 Admin Delete Bug Fix (December 17, 2025)**
+  - [x] Fixed subscriber delete issue (UI not updating after deletion)
+  - [x] Root cause identified: OAuth JWT missing email claim
+  - [x] Created `/admin/debug-auth` diagnostic page
+  - [x] Confirmed OAuth authentication working in browser context
+  - [x] Restored secure RLS policy for subscribers table
+  - [x] Enhanced debug logging in CRUD delete operations
+  - See debug page at [/admin/debug-auth](app/admin/debug-auth/page.tsx)
+
 ### 🔄 Planned Features
-- [ ] Email integration (newsletter sending, transactional emails via Resend/SendGrid)
 - [ ] Search functionality (blog, portfolio search)
 - [ ] Pagination for blog/portfolio lists
 - [ ] Analytics integration (Google Analytics or Plausible)
@@ -426,7 +529,13 @@ Submit contact form with reCAPTCHA verification.
 - [DEPLOYMENT.md](DEPLOYMENT.md) - Production deployment guide
 - [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) - reCAPTCHA configuration
 
-### Security Documentation
+### Email Notifications Documentation
+- [EMAIL-QUICKSTART.md](EMAIL-QUICKSTART.md) - 5-minute email system setup guide
+- [EMAIL-NOTIFICATIONS-SETUP.md](EMAIL-NOTIFICATIONS-SETUP.md) - Comprehensive email configuration
+- [EMAIL-SECURITY-SUMMARY.md](EMAIL-SECURITY-SUMMARY.md) - Email security architecture & compliance
+
+### Security & Code Quality Documentation
+- [CODE-AUDIT-REPORT.md](CODE-AUDIT-REPORT.md) - ✨ **NEW** Comprehensive code audit (Dec 2025) - A+ rating (98/100)
 - [SECURITY.md](SECURITY.md) - Security best practices overview
 - [SECURITY-IMPLEMENTATION.md](SECURITY-IMPLEMENTATION.md) - Comprehensive security implementation guide
 - [SECURITY-POLICY.md](SECURITY-POLICY.md) - OWASP-grade security policy
