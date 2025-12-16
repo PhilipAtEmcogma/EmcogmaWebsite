@@ -41,6 +41,11 @@ KV_REST_API_URL=https://xxx.upstash.io
 KV_REST_API_TOKEN=your-kv-token
 KV_REST_API_READ_ONLY_TOKEN=your-kv-read-only-token
 
+# Email Notifications (Resend API - Optional but recommended)
+RESEND_API_KEY=re_your_api_key_here
+FROM_EMAIL=noreply@emcogma.com
+UNSUBSCRIBE_TOKEN_SECRET=your_long_random_secret_here
+
 # CORS Configuration (REQUIRED in production)
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
@@ -48,6 +53,8 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Note:** `ADMIN_EMAIL` is no longer used. Admin access is now managed via the `admin_users` table in Supabase.
 
 See [RECAPTCHA-SETUP.md](RECAPTCHA-SETUP.md) for detailed reCAPTCHA configuration.
+
+**Email Notifications Setup:** See [EMAIL-QUICKSTART.md](EMAIL-QUICKSTART.md) for 5-minute email system setup or [EMAIL-NOTIFICATIONS-SETUP.md](EMAIL-NOTIFICATIONS-SETUP.md) for comprehensive configuration.
 
 ### 3. Set Up Supabase Database
 
@@ -97,12 +104,17 @@ Open [http://localhost:3000](http://localhost:3000) to see your site.
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
 │   │   ├── comments/     # Comments GET/POST (Supabase-connected)
-│   │   └── contact/      # Contact form (reCAPTCHA + Formspree)
+│   │   ├── contact/      # Contact form (reCAPTCHA + Formspree)
+│   │   ├── subscribe/    # Email subscription endpoints
+│   │   │   └── check/    # Subscription status check (POST)
+│   │   ├── unsubscribe/  # Token-based unsubscribe
+│   │   └── notify-subscribers/ # Admin-only email notifications
 │   ├── blog/              # Blog pages (Supabase-connected)
 │   ├── portfolio/         # Portfolio page (Supabase-connected)
 │   ├── contact/           # Contact page with reCAPTCHA
 │   ├── saas/              # SaaS/Product landing page
-│   ├── admin/             # Admin dashboard (auth pending)
+│   ├── admin/             # Admin dashboard (OAuth authentication)
+│   ├── unsubscribe/       # Unsubscribe landing page
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Home page
 ├── components/            # React components
@@ -111,9 +123,10 @@ Open [http://localhost:3000](http://localhost:3000) to see your site.
 │   ├── blog/             # Blog components (CommentSection, ShareButtons)
 │   ├── contact/          # Contact form (ContactForm, ReCaptchaWrapper)
 │   ├── portfolio/        # Portfolio components
-│   ├── admin/            # Admin components
+│   ├── admin/            # Admin components (includes NotifySubscribersButton)
 │   └── layout/           # Layout components
 ├── lib/                   # Utilities and libraries
+│   ├── email/            # Email system (tokens, templates, send)
 │   └── supabase/         # Supabase client and utilities
 ├── public/               # Static assets
 └── Documentation files   # CLAUDE.md, README.md, SETUP.md, etc.
@@ -182,7 +195,13 @@ In your Vercel project settings, add:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
 - `RECAPTCHA_SECRET_KEY`
-- `SITE_URL` (your production URL)
+- `KV_REST_API_URL` (REQUIRED for production - Vercel KV)
+- `KV_REST_API_TOKEN` (REQUIRED for production - Vercel KV)
+- `KV_REST_API_READ_ONLY_TOKEN` (REQUIRED for production - Vercel KV)
+- `RESEND_API_KEY` (optional but recommended - for email notifications)
+- `FROM_EMAIL` (optional but recommended - for email notifications)
+- `UNSUBSCRIBE_TOKEN_SECRET` (optional but recommended - for email notifications)
+- `NEXT_PUBLIC_SITE_URL` (your production URL)
 
 **Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in Supabase.
 
@@ -282,8 +301,9 @@ Run `npx tsc --noEmit` to check for type errors.
 For issues or questions:
 
 - Check the CLAUDE.md file for project guidelines
-- Review Supabase documentation
-- Check Next.js 14+ documentation
+- Review Supabase documentation at [supabase.com/docs](https://supabase.com/docs)
+- Check Next.js 16 documentation at [nextjs.org/docs](https://nextjs.org/docs)
+- Email setup: [EMAIL-QUICKSTART.md](EMAIL-QUICKSTART.md)
 
 ## License
 

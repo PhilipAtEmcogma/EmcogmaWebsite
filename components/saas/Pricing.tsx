@@ -18,16 +18,8 @@ export default async function Pricing() {
     products && products.length > 0
       ? products.map((product: Product) => ({
           name: product.name,
-          price: product.price_monthly
-            ? `$${product.price_monthly}`
-            : product.price_yearly
-            ? `$${product.price_yearly}`
-            : 'Custom',
-          period: product.price_monthly
-            ? 'per month'
-            : product.price_yearly
-            ? 'per year'
-            : 'contact us',
+          price: product.price ? `$${product.price}` : 'Custom',
+          period: product.pricing_type === 'recurring' ? 'per month' : 'one-time',
           description: product.tagline,
           features: product.features || [],
           cta: product.featured ? 'Start Free Trial' : 'Get Started',

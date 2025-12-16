@@ -99,11 +99,14 @@ export function CrudManager<T extends CrudEntity>({
 
     if (result.success) {
       showToast(APP_CONFIG.ui.successMessages.deleted, 'success');
+      setDeleteConfirm(null);
+      // The fetchItems() in useCrud should have already updated the list
+      // If the list doesn't update, try refreshing manually:
+      // window.location.reload();
     } else {
       showToast(result.error || 'Delete failed', 'error');
+      setDeleteConfirm(null);
     }
-
-    setDeleteConfirm(null);
   };
 
   if (loading && items.length === 0) {

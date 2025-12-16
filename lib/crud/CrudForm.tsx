@@ -139,10 +139,15 @@ export function CrudForm<T extends CrudEntity>({
             key={field.name as string}
             type="text"
             label={field.label}
-            value={Array.isArray(value) ? tagsToString(value) : ''}
+            value={Array.isArray(value) ? tagsToString(value) : (value as string) || ''}
             onChange={(e) =>
-              handleChange(field.name, stringToTags(e.target.value) as any)
+              handleChange(field.name, e.target.value as any)
             }
+            onBlur={(e) => {
+              // Convert to array on blur to preserve commas while typing
+              const tags = stringToTags(e.target.value);
+              handleChange(field.name, tags as any);
+            }}
             placeholder={field.placeholder || 'tag1, tag2, tag3'}
             helperText={
               field.helperText || 'Separate tags with commas'
@@ -158,10 +163,15 @@ export function CrudForm<T extends CrudEntity>({
             key={field.name as string}
             type="text"
             label={field.label}
-            value={Array.isArray(value) ? tagsToString(value) : ''}
+            value={Array.isArray(value) ? tagsToString(value) : (value as string) || ''}
             onChange={(e) =>
-              handleChange(field.name, stringToTags(e.target.value) as any)
+              handleChange(field.name, e.target.value as any)
             }
+            onBlur={(e) => {
+              // Convert to array on blur to preserve commas while typing
+              const tags = stringToTags(e.target.value);
+              handleChange(field.name, tags as any);
+            }}
             placeholder={field.placeholder || 'item1, item2, item3'}
             helperText={
               field.helperText || 'Separate items with commas'

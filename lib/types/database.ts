@@ -104,8 +104,8 @@ export interface Product extends BaseEntity {
   tagline: string;
   description: string;
   long_description: string;
-  price_monthly: number | null;
-  price_yearly: number | null;
+  pricing_type: 'one-time' | 'recurring';
+  price: number | null;
   features: string[];
   image_url: string;
   demo_url: string | null;
