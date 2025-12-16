@@ -115,8 +115,10 @@ export const productSchema = z.object({
   tagline: z.string().min(10, 'Tagline is required').max(200, 'Tagline is too long'),
   description: z.string().min(10, 'Description is required'),
   long_description: z.string().min(10, 'Long description is required'),
-  price_monthly: z.number().min(0).nullable().optional(),
-  price_yearly: z.number().min(0).nullable().optional(),
+  pricing_type: z.enum(['one-time', 'recurring'], {
+    required_error: 'Pricing type is required',
+  }),
+  price: z.number().min(0, 'Price must be positive').nullable(),
   features: z.array(z.string().min(1)).min(1, 'At least one feature is required'),
   image_url: urlSchema.optional().or(z.literal('')),
   demo_url: urlSchema.nullable().optional(),

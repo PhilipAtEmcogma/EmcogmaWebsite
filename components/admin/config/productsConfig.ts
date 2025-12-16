@@ -49,16 +49,21 @@ export const productsConfig: CrudConfig<Product> = {
       required: true,
     },
     {
-      name: 'price_monthly',
-      type: 'number',
-      label: 'Monthly Price ($)',
-      placeholder: '29.99',
+      name: 'pricing_type',
+      type: 'select',
+      label: 'Pricing Type',
+      required: true,
+      options: [
+        { value: 'one-time', label: 'One-time Payment' },
+        { value: 'recurring', label: 'Monthly Recurring' },
+      ],
     },
     {
-      name: 'price_yearly',
+      name: 'price',
       type: 'number',
-      label: 'Yearly Price ($)',
-      placeholder: '299.99',
+      label: 'Price ($)',
+      placeholder: '29.99',
+      required: true,
     },
     {
       name: 'features',
@@ -119,8 +124,8 @@ export const productsConfig: CrudConfig<Product> = {
     tagline: '',
     description: '',
     long_description: '',
-    price_monthly: null,
-    price_yearly: null,
+    pricing_type: 'one-time',
+    price: null,
     features: [],
     image_url: '',
     demo_url: null,
@@ -138,7 +143,7 @@ export const productsConfig: CrudConfig<Product> = {
 
   formatters: {
     features: (features) => features.join(', '),
-    price_monthly: (price) => price ? `$${price}/mo` : '-',
-    price_yearly: (price) => price ? `$${price}/yr` : '-',
+    price: (price) => price ? `$${price}` : '-',
+    pricing_type: (type) => type === 'one-time' ? 'One-time' : 'Monthly',
   },
 };

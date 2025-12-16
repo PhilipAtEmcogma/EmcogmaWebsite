@@ -79,8 +79,18 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your-site-key
 RECAPTCHA_SECRET_KEY=your-secret-key
 
-# Optional
-SITE_URL=https://your-domain.vercel.app
+# Vercel KV (REQUIRED for Production - distributed rate limiting & CSRF)
+KV_REST_API_URL=https://xxx.upstash.io
+KV_REST_API_TOKEN=your-kv-token
+KV_REST_API_READ_ONLY_TOKEN=your-kv-read-only-token
+
+# Email Notifications (Resend API - Optional but recommended)
+RESEND_API_KEY=re_your_api_key_here
+FROM_EMAIL=noreply@emcogma.com
+UNSUBSCRIBE_TOKEN_SECRET=your_long_random_secret_here
+
+# CORS Configuration (REQUIRED in production)
+NEXT_PUBLIC_SITE_URL=https://your-domain.vercel.app
 ```
 
 **Note:** `ADMIN_EMAIL` is no longer required. Admin access is managed via the `admin_users` table in your Supabase database.
@@ -111,6 +121,14 @@ vercel env add NEXT_PUBLIC_SUPABASE_URL
 vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 vercel env add NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 vercel env add RECAPTCHA_SECRET_KEY
+vercel env add KV_REST_API_URL
+vercel env add KV_REST_API_TOKEN
+vercel env add KV_REST_API_READ_ONLY_TOKEN
+
+# Optional email notifications
+vercel env add RESEND_API_KEY
+vercel env add FROM_EMAIL
+vercel env add UNSUBSCRIBE_TOKEN_SECRET
 
 # Note: ADMIN_EMAIL is no longer needed - admin access via admin_users table
 
@@ -163,6 +181,9 @@ vercel --prod
 - [ ] Comments can be submitted
 - [ ] Sitemap accessible: `/sitemap.xml`
 - [ ] Robots.txt accessible: `/robots.txt`
+- [ ] Email subscription works (if Resend configured)
+- [ ] Welcome email sent on subscription (if Resend configured)
+- [ ] Unsubscribe link works (if Resend configured)
 
 ### 4.2 Test Supabase Integration
 

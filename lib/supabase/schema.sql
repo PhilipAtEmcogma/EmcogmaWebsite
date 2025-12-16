@@ -40,7 +40,7 @@ RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM admin_users
-    WHERE email = auth.jwt() ->> 'email'
+    WHERE LOWER(email) = LOWER(auth.jwt() ->> 'email')
     AND active = true
   );
 END;
@@ -166,8 +166,8 @@ CREATE TABLE IF NOT EXISTS products (
   tagline TEXT,
   description TEXT NOT NULL,
   long_description TEXT,
-  price_monthly DECIMAL(10,2),
-  price_yearly DECIMAL(10,2),
+  pricing_type TEXT NOT NULL CHECK (pricing_type IN ('one-time', 'recurring')),
+  price DECIMAL(10,2),
   features TEXT[] DEFAULT '{}',
   image_url TEXT,
   demo_url TEXT,
