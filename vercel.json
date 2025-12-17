@@ -6,25 +6,96 @@
   "regions": ["iad1"],
   "headers": [
     {
+      "source": "/assets/.*\\.(js|css|png|jpg|jpeg|webp|avif|svg|woff|woff2)$",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/api/.*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
         },
         {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
+          "key": "Access-Control-Max-Age",
+          "value": "86400"
         }
       ]
     }
-  ]
+  ],
+  "firewall": {
+    "rules": [
+      {
+        "name": "Rate limit admin routes",
+        "description": "Protect admin portal from brute force",
+        "action": {
+          "mitigate": {
+            "action": "rate_limit",
+            "rateLimit": {
+              "algo": "sliding_window",
+              "window": "1m",
+              "limit": 30
+            }
+          }
+        },
+        "condition": {
+          "op": "prefixmatch",
+          "key": "request.pathname",
+          "value": "/admin"
+        }
+      },
+      {
+        "name": "Rate limit API routes",
+        "description": "Protect API endpoints from abuse",
+        "action": {
+          "mitigate": {
+            "action": "rate_limit",
+            "rateLimit": {
+              "algo": "sliding_window",
+              "window": "1m",
+              "limit": 100
+            }
+          }
+        },
+        "condition": {
+          "op": "prefixmatch",
+          "key": "request.pathname",
+          "value": "/api"
+        }
+      },
+      {
+        "name": "Block known bad user agents",
+        "description": "Block common scrapers and bots",
+        "action": {
+          "mitigate": {
+            "action": "deny"
+          }
+        },
+        "condition": {
+          "op": "re",
+          "key": "request.headers.user-agent",
+          "value": "(curl|wget|python-requests|Go-http-client|Scrapy|Selenium)"
+        }
+      }
+    ]
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "silent": false
+  }
 }

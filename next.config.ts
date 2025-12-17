@@ -56,6 +56,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Webpack configuration for Edge Runtime compatibility
+  webpack: (config, { isServer }) => {
+    // Edge Runtime doesn't support Node.js crypto module
+    // Use Web Crypto API instead (already implemented in lib/security/csp.ts)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+      };
+    }
+    return config;
+  },
 };
 
 export default nextConfig;
