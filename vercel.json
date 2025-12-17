@@ -37,62 +37,6 @@
       ]
     }
   ],
-  "firewall": {
-    "rules": [
-      {
-        "name": "Rate limit admin routes",
-        "description": "Protect admin portal from brute force",
-        "action": {
-          "mitigate": {
-            "action": "rate_limit",
-            "rateLimit": {
-              "algo": "sliding_window",
-              "window": "1m",
-              "limit": 30
-            }
-          }
-        },
-        "condition": {
-          "op": "prefixmatch",
-          "key": "request.pathname",
-          "value": "/admin"
-        }
-      },
-      {
-        "name": "Rate limit API routes",
-        "description": "Protect API endpoints from abuse",
-        "action": {
-          "mitigate": {
-            "action": "rate_limit",
-            "rateLimit": {
-              "algo": "sliding_window",
-              "window": "1m",
-              "limit": 100
-            }
-          }
-        },
-        "condition": {
-          "op": "prefixmatch",
-          "key": "request.pathname",
-          "value": "/api"
-        }
-      },
-      {
-        "name": "Block known bad user agents",
-        "description": "Block common scrapers and bots",
-        "action": {
-          "mitigate": {
-            "action": "deny"
-          }
-        },
-        "condition": {
-          "op": "re",
-          "key": "request.headers.user-agent",
-          "value": "(curl|wget|python-requests|Go-http-client|Scrapy|Selenium)"
-        }
-      }
-    ]
-  },
   "github": {
     "enabled": true,
     "autoAlias": true,

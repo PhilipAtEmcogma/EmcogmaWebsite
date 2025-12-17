@@ -19,8 +19,8 @@ Review and preparation of your `.env.local` file for Vercel deployment to **emco
 
 2. **Google reCAPTCHA v2** ✅
    ```env
-   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lcqeh4sAAAAADisOJciVuiSuskhBUiHj1ckQMFl
-   RECAPTCHA_SECRET_KEY=6Lcqeh4sAAAAAD3tptc1zIGikvQfmHJHu89MhM6g
+   NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key_here
+   RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key_here
    ```
    - **IMPORTANT:** Add `emcogma.ai` to allowed domains in reCAPTCHA admin console
    - Go to: [google.com/recaptcha/admin](https://www.google.com/recaptcha/admin)
@@ -28,7 +28,7 @@ Review and preparation of your `.env.local` file for Vercel deployment to **emco
 
 3. **Email Notifications (Resend)** ✅
    ```env
-   RESEND_API_KEY=re_YP5hXNgX_4P9cBDiR5wWcvotPCHDDCLXG
+   RESEND_API_KEY=re_your_resend_api_key_here
    FROM_EMAIL=noreply@emcogma.ai
    ```
    - API key looks valid
@@ -37,7 +37,7 @@ Review and preparation of your `.env.local` file for Vercel deployment to **emco
 
 4. **Unsubscribe Token Secret** ✅
    ```env
-   UNSUBSCRIBE_TOKEN_SECRET=8357b04a6442788db44fca8884ddce6e898492277bb2de6f993d49c3d58e45c0
+   UNSUBSCRIBE_TOKEN_SECRET=your_64_char_hex_secret_here
    ```
    - 64-character hex string ✅
    - Production-ready ✅
@@ -179,8 +179,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=[FULL_KEY_FROM_SUPABASE_DASHBOARD]
 NEXT_PUBLIC_SITE_URL=https://emcogma.ai
 
 # Google reCAPTCHA v2 (Don't forget to add emcogma.ai to allowed domains!)
-NEXT_PUBLIC_RECAPTCHA_SITE_KEY=6Lcqeh4sAAAAADisOJciVuiSuskhBUiHj1ckQMFl
-RECAPTCHA_SECRET_KEY=6Lcqeh4sAAAAAD3tptc1zIGikvQfmHJHu89MhM6g
+NEXT_PUBLIC_RECAPTCHA_SITE_KEY=your_recaptcha_site_key_here
+RECAPTCHA_SECRET_KEY=your_recaptcha_secret_key_here
 
 # Formspree (Contact Form) - GET THIS FROM FORMSPREE DASHBOARD
 FORMSPREE_ENDPOINT=https://formspree.io/f/[YOUR_FORM_ID]
@@ -191,11 +191,11 @@ KV_REST_API_TOKEN=[FROM_VERCEL_KV_DASHBOARD]
 KV_REST_API_READ_ONLY_TOKEN=[FROM_VERCEL_KV_DASHBOARD]
 
 # Email Notifications (Resend API)
-RESEND_API_KEY=re_YP5hXNgX_4P9cBDiR5wWcvotPCHDDCLXG
+RESEND_API_KEY=re_your_resend_api_key_here
 FROM_EMAIL=noreply@emcogma.ai
 
 # Unsubscribe Token Security
-UNSUBSCRIBE_TOKEN_SECRET=8357b04a6442788db44fca8884ddce6e898492277bb2de6f993d49c3d58e45c0
+UNSUBSCRIBE_TOKEN_SECRET=your_64_char_hex_secret_here
 
 # Optional Configuration
 SESSION_TIMEOUT_MINUTES=10

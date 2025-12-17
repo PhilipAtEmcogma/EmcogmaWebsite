@@ -12,10 +12,11 @@ paths-ignore:
   - .next/**                  # Build artifacts
   - out/**                    # Export output
   - coverage/**               # Test coverage reports
-  - '**/*.md'                 # Documentation files
+  - '**/*.md'                 # Documentation files (includes PRODUCTION-ENV-REVIEW.md)
   - '**/*.test.ts'            # Test files may contain mock data
   - '**/*.test.tsx'           # Test files may contain mock data
   - verify-security.js        # Security script that checks for patterns
+  - PRODUCTION-ENV-REVIEW.md  # Production environment review with redacted placeholders
 
 # Specific secrets to ignore (use with caution!)
 matches-ignore:
