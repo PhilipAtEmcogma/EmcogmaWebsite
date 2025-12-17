@@ -3,14 +3,17 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import ReCaptchaWrapper from '@/components/contact/ReCaptchaWrapper';
 
 export default function Hero() {
   const [text, setText] = useState('');
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [email, setEmail] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const { showToast } = useToast();
   const fullText = 'Welcome to the future.';
 
@@ -66,6 +69,13 @@ export default function Hero() {
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Only require reCAPTCHA for subscribe action (not unsubscribe)
+    if (!isSubscribed && !recaptchaToken) {
+      showToast('Please complete the reCAPTCHA verification', 'error');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -73,15 +83,26 @@ export default function Hero() {
       const response = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, action }),
+        body: JSON.stringify({
+          email,
+          action,
+          ...(action === 'subscribe' && { recaptchaToken })
+        }),
       });
 
       if (response.ok) {
         const data = await response.json();
         showToast(data.message, 'success');
         setEmail('');
+        setRecaptchaToken(null);
         setIsSubscribed(false);
-        setShowSubscribeModal(false);
+        setSubmitSuccess(true);
+
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          setShowSubscribeModal(false);
+          setSubmitSuccess(false);
+        }, 2000);
       } else {
         const data = await response.json();
         showToast(data.error || 'Failed to process request. Please try again.', 'error');
@@ -93,6 +114,12 @@ export default function Hero() {
       setIsSubmitting(false);
     }
   };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+  };
+
+  const isFormValid = email && (isSubscribed || recaptchaToken);
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
@@ -196,10 +223,20 @@ export default function Hero() {
                 )}
               </div>
 
+              {/* reCAPTCHA - only show for subscribe action */}
+              {!isSubscribed && (
+                <div className="flex justify-center">
+                  <ReCaptchaWrapper
+                    onVerify={handleRecaptchaChange}
+                    resetTrigger={submitSuccess}
+                  />
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={!isFormValid || isSubmitting}
                   className={`flex-1 px-6 py-3 font-mono ${
                     isSubscribed
                       ? 'bg-cyber-secondary text-white hover:bg-cyber-secondary/90'

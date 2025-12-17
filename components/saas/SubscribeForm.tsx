@@ -1,23 +1,60 @@
 'use client';
 
 import { useState } from 'react';
+import ReCaptchaWrapper from '@/components/contact/ReCaptchaWrapper';
 
 export default function SubscribeForm() {
   const [email, setEmail] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!recaptchaToken) {
+      setErrorMessage('Please complete the reCAPTCHA verification');
+      return;
+    }
+
     setStatus('loading');
+    setErrorMessage('');
 
-    // TODO: Implement actual subscription logic with Supabase
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          action: 'subscribe',
+          recaptchaToken,
+        }),
+      });
 
-    setStatus('success');
-    setEmail('');
+      const data = await response.json();
 
-    setTimeout(() => setStatus('idle'), 3000);
+      if (response.ok) {
+        setStatus('success');
+        setEmail('');
+        setRecaptchaToken(null);
+        setTimeout(() => setStatus('idle'), 3000);
+      } else {
+        setStatus('error');
+        setErrorMessage(data.error || 'Failed to subscribe. Please try again.');
+      }
+    } catch (error) {
+      setStatus('error');
+      setErrorMessage('Network error. Please check your connection and try again.');
+    }
   };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+  };
+
+  const isFormValid = email && recaptchaToken;
 
   return (
     <section className="section-container">
@@ -30,23 +67,36 @@ export default function SubscribeForm() {
             Subscribe to our newsletter for the latest updates, features, and exclusive beta access.
           </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              className="flex-grow input-cyber"
-              disabled={status === 'loading'}
-            />
-            <button
-              type="submit"
-              disabled={status === 'loading'}
-              className="btn-cyber disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
-            </button>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+                className="flex-grow input-cyber"
+                disabled={status === 'loading'}
+              />
+              <button
+                type="submit"
+                disabled={!isFormValid || status === 'loading'}
+                className={`btn-cyber whitespace-nowrap ${
+                  isFormValid && status !== 'loading'
+                    ? ''
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                {status === 'loading' ? 'Subscribing...' : 'Subscribe'}
+              </button>
+            </div>
+
+            <div className="flex justify-center">
+              <ReCaptchaWrapper
+                onVerify={handleRecaptchaChange}
+                resetTrigger={status === 'success'}
+              />
+            </div>
           </form>
 
           {status === 'success' && (
@@ -57,7 +107,7 @@ export default function SubscribeForm() {
 
           {status === 'error' && (
             <p className="mt-4 text-red-400 font-mono">
-              ✗ Something went wrong. Please try again.
+              ✗ {errorMessage || 'Something went wrong. Please try again.'}
             </p>
           )}
 

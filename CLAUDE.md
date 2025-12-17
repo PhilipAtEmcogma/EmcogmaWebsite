@@ -10,8 +10,9 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Blog posts with ISR (60s revalidation), static generation, markdown rendering
 - Portfolio projects with featured status and category filtering
 - Articles, products, and demos content types
-- Comments system with moderation (fetch approved, submit for approval)
-- API routes: `/api/comments` (GET/POST), `/api/contact` (POST with reCAPTCHA)
+- Comments system with moderation (fetch approved, submit for approval with reCAPTCHA)
+- Newsletter subscription with reCAPTCHA protection (homepage modal + SaaS page)
+- API routes: `/api/comments` (GET/POST with reCAPTCHA), `/api/contact` (POST with reCAPTCHA), `/api/subscribe` (POST with reCAPTCHA)
 
 **Admin Portal (Full CRUD):**
 - OAuth authentication (Google, GitHub) with database-driven admin whitelist
@@ -42,7 +43,8 @@ Next.js 16 cyberpunk-themed personal brand website with Supabase backend. Core f
 - Updated brand messaging: "EMCOGMA is a hub for future-focused engineering..."
 - Responsive layout with sticky navigation
 - SEO optimization (sitemap, robots.txt, Open Graph, metadata)
-- Contact form with Google reCAPTCHA v2 + Formspree integration (email-only, no live chat)
+- **Google reCAPTCHA v2 protection** - Contact form, blog comments, newsletter subscriptions (all entry points protected)
+- Contact form with Formspree integration (email-only, no live chat)
 - Social sharing (Twitter, LinkedIn, Copy Link)
 
 **Infrastructure & Security:**
@@ -548,6 +550,14 @@ npm run test:coverage   # Run tests with coverage report
   - **Restored secure RLS policy** - "Admin can manage subscribers" policy now active
   - **Debug logging added** - Enhanced console logging in `useCrud.ts` deleteItem function
   - **Verification:** Admin authentication working correctly with JWT email claim present
+- **🔐 reCAPTCHA Re-enablement (December 17, 2025):**
+  - **Re-enabled Google reCAPTCHA v2** - All subscribe forms now require reCAPTCHA verification
+  - **Server-side verification active** - [app/api/subscribe/route.ts](app/api/subscribe/route.ts#L46-L86) validates tokens with Google API
+  - **Client-side validation restored** - Submit buttons disabled until reCAPTCHA completed
+  - **Homepage modal protection** - [components/home/Hero.tsx](components/home/Hero.tsx#L227-L234) shows reCAPTCHA for new subscriptions
+  - **SaaS page protection** - [components/saas/SubscribeForm.tsx](components/saas/SubscribeForm.tsx#L94-L99) requires reCAPTCHA before submit
+  - **Smart validation** - Unsubscribe actions bypass reCAPTCHA (only shown for new subscriptions)
+  - **Production-ready security** - OWASP compliant bot protection across all subscription entry points
 
 ## Next Steps
 
