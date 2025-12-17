@@ -108,7 +108,7 @@ export async function sendContentNotification(
     products: 'Product',
     demos: 'Demo',
     projects: 'Project',
-  };
+  } as const;
 
   let sent = 0;
   let failed = 0;
