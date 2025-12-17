@@ -5,6 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
+import { getClientIP } from '@/lib/supabase/ip';
 
 /**
  * Edge-compatible rate limit configuration
@@ -30,7 +31,7 @@ export async function checkEdgeRateLimit(
     const { kv } = await import('@vercel/kv');
 
     // Get client identifier
-    const ip = request.ip || request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+    const ip = getClientIP(request);
     const key = `edge-rl:${ip}`;
 
     // Atomic increment with expiry
