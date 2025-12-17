@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js'],
   },
+  // Turbopack configuration (Next.js 16 default)
+  // Empty config to acknowledge webpack config migration
+  turbopack: {},
   // Security headers (backup - primary headers in middleware)
   async headers() {
     return [
