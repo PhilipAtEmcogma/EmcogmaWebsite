@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReCaptchaWrapper from '@/components/contact/ReCaptchaWrapper';
 
 interface Comment {
   id: string;
@@ -16,6 +17,7 @@ interface CommentSectionProps {
 export default function CommentSection({ postSlug }: CommentSectionProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState({ author_name: '', content: '' });
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -45,6 +47,12 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!recaptchaToken) {
+      setErrorMessage('Please complete the reCAPTCHA verification');
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmitStatus('idle');
     setErrorMessage('');
@@ -59,6 +67,7 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
           postSlug,
           author: newComment.author_name,
           content: newComment.content,
+          recaptchaToken,
         }),
       });
 
@@ -67,6 +76,7 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
       if (response.ok && data.success) {
         setSubmitStatus('success');
         setNewComment({ author_name: '', content: '' });
+        setRecaptchaToken(null);
         // Note: New comment won't appear immediately as it needs admin approval
       } else {
         setSubmitStatus('error');
@@ -79,6 +89,12 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
       setIsSubmitting(false);
     }
   };
+
+  const handleRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+  };
+
+  const isFormValid = newComment.author_name && newComment.content && recaptchaToken;
 
   return (
     <div className="mt-16">
@@ -120,6 +136,14 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
           />
         </div>
 
+        {/* reCAPTCHA */}
+        <div className="mb-4">
+          <ReCaptchaWrapper
+            onVerify={handleRecaptchaChange}
+            resetTrigger={submitStatus === 'success'}
+          />
+        </div>
+
         {/* Error Message */}
         {errorMessage && (
           <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg">
@@ -138,8 +162,12 @@ export default function CommentSection({ postSlug }: CommentSectionProps) {
 
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="btn-cyber disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!isFormValid || isSubmitting}
+          className={`btn-cyber ${
+            isFormValid && !isSubmitting
+              ? ''
+              : 'opacity-50 cursor-not-allowed'
+          }`}
         >
           {isSubmitting ? 'Posting...' : 'Post Comment'}
         </button>
