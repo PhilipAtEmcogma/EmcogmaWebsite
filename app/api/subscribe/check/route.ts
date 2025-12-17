@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-import { rateLimit } from '@/lib/security/rateLimitDistributed';
+import { checkRateLimit } from '@/lib/security/rateLimitDistributed';
 
 const checkSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -11,9 +11,9 @@ const checkSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Rate limiting: 20 checks per minute per IP
-    const rateLimitResult = await rateLimit(request, {
-      limit: 20,
-      window: 60,
+    const rateLimitResult = await checkRateLimit(request, {
+      maxRequests: 20,
+      windowMs: 60 * 1000,
     });
 
     if (!rateLimitResult.success) {
