@@ -3,10 +3,13 @@ import { updateSession } from '@/lib/supabase/middleware';
 import { checkEdgeRateLimit, getEdgeRateLimitConfig } from '@/lib/security/edgeRateLimit';
 
 /**
- * Next.js 16 middleware with Edge Runtime support
- * Performs ultra-fast rate limiting at CDN edge before serverless execution
+ * Next.js 16 middleware
+ * Performs rate limiting and session management
+ *
+ * Note: Edge runtime removed due to Turbopack compatibility issues.
+ * Runs in Node.js runtime instead (still fast with Vercel serverless).
  */
-export async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   // Edge rate limiting (runs at CDN layer for <5ms latency)
   const edgeConfig = getEdgeRateLimitConfig(request.nextUrl.pathname);
 
@@ -48,8 +51,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-  // Edge Runtime for ultra-fast execution at CDN layer
-  // Note: Some Node.js APIs unavailable in Edge (crypto.randomBytes, fs, etc.)
-  // Session validation still runs in serverless layer
-  runtime: 'experimental-edge',
 };
