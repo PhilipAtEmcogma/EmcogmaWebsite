@@ -116,7 +116,7 @@ export const productSchema = z.object({
   description: z.string().min(10, 'Description is required'),
   long_description: z.string().min(10, 'Long description is required'),
   pricing_type: z.enum(['one-time', 'recurring'], {
-    required_error: 'Pricing type is required',
+    message: 'Pricing type is required',
   }),
   price: z.number().min(0, 'Price must be positive').nullable(),
   features: z.array(z.string().min(1)).min(1, 'At least one feature is required'),

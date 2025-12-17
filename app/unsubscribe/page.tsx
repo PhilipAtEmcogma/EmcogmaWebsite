@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function UnsubscribePage() {
+function UnsubscribeContent() {
   const searchParams = useSearchParams();
   const token = searchParams?.get('token');
 
@@ -105,5 +105,27 @@ export default function UnsubscribePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function UnsubscribePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="section-container min-h-screen flex items-center justify-center">
+          <div className="card-cyber max-w-2xl w-full p-12 text-center">
+            <div className="text-6xl mb-6">⏳</div>
+            <h1 className="text-3xl font-bold font-mono neon-text mb-4">
+              Loading...
+            </h1>
+            <p className="text-foreground/70">
+              Please wait while we load the unsubscribe page.
+            </p>
+          </div>
+        </div>
+      }
+    >
+      <UnsubscribeContent />
+    </Suspense>
   );
 }
