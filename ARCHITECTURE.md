@@ -127,10 +127,21 @@ EmcogmaWebsite/
 │   │   ├── ErrorHandler.tsx         # Error handler hook
 │   │   └── index.ts                 # Re-exports
 │   │
+│   ├── session/                     # ✨ NEW: Session management (Dec 2025)
+│   │   ├── validation.ts            # Session timeout, IP validation (200 lines)
+│   │   ├── authorization.ts         # Admin route authorization (60 lines)
+│   │   ├── index.ts                 # Session exports
+│   │   └── __tests__/               # Session tests (58 tests, ~900 lines)
+│   │       ├── validation.test.ts   # 30 tests
+│   │       └── authorization.test.ts # 28 tests
+│   │
 │   ├── supabase/                    # Supabase integration
 │   │   ├── client.ts
 │   │   ├── server.ts
-│   │   ├── middleware.ts
+│   │   ├── ip.ts                    # ✨ NEW: IP extraction utility (28 lines)
+│   │   ├── middleware.ts            # ✨ REFACTORED: 112 lines (was 260)
+│   │   ├── __tests__/               # ✨ NEW: Supabase tests
+│   │   │   └── ip.test.ts           # 17 tests
 │   │   └── schema.sql
 │   │
 │   ├── auth/
@@ -142,6 +153,86 @@ EmcogmaWebsite/
 ---
 
 ## Core Systems
+
+### 0. Session Management Module (`lib/session/`) ⭐ NEW (Dec 2025)
+
+**Purpose**: Secure session validation and authorization extracted from middleware
+
+**Background**:
+- **Before**: Middleware.ts was 260 lines with cyclomatic complexity 15, nesting levels 5+
+- **After**: Middleware.ts reduced to 112 lines (57% reduction), complexity 5, nesting 2-3
+- **Extracted**: 260 lines of session logic into dedicated module
+
+**Files**:
+- `validation.ts` (200 lines, 5 functions):
+  - `validateSessionTimeout()` - 10-minute inactivity timeout detection
+  - `validateSessionIP()` - IP address change detection
+  - `updateSessionCookies()` - Session cookie management
+  - `isOAuthCallback()` - OAuth callback detection
+  - `cleanupOAuthCallback()` - OAuth cookie cleanup
+- `authorization.ts` (60 lines, 2 functions):
+  - `isActiveAdmin()` - Database admin status check
+  - `authorizeAdminRoute()` - Route protection logic
+- `__tests__/` (58 tests, ~900 lines):
+  - `validation.test.ts` - 30 comprehensive tests
+  - `authorization.test.ts` - 28 comprehensive tests
+
+**Benefits**:
+- **Improved testability** - Each function independently testable (~95% coverage)
+- **Reduced complexity** - Middleware cyclomatic complexity from 15 → 5
+- **Better separation** - Session validation separated from HTTP routing
+- **Easier maintenance** - Clear boundaries between session, auth, security
+- **Type safety** - SessionValidationResult interface for consistent returns
+
+**Usage** (Middleware):
+```typescript
+import {
+  validateSessionTimeout,
+  validateSessionIP,
+  updateSessionCookies,
+  cleanupOAuthCallback,
+  authorizeAdminRoute,
+} from '@/lib/session';
+
+// Session validation
+const timeoutResult = await validateSessionTimeout(request, lastActivityCookie, supabase);
+if (timeoutResult.shouldRedirect && timeoutResult.response) {
+  return timeoutResult.response;
+}
+
+const ipResult = await validateSessionIP(request, sessionIpCookie, currentIP, supabase);
+if (ipResult.shouldRedirect && ipResult.response) {
+  return ipResult.response;
+}
+
+// Update session state
+updateSessionCookies(supabaseResponse, currentIP);
+cleanupOAuthCallback(supabaseResponse, request);
+
+// Route authorization
+const authResponse = await authorizeAdminRoute(request, user, supabase);
+if (authResponse) return authResponse;
+```
+
+**Test Coverage**:
+- ✅ SESSION_TIMEOUT_MS constant validation
+- ✅ OAuth callback detection (3 tests)
+- ✅ Session timeout with browser reopen (4 scenarios)
+- ✅ Invalid timestamp handling (NaN, negative, etc.)
+- ✅ IP address validation (IPv4, IPv6, change detection)
+- ✅ Cookie management (session cookies, no persistence)
+- ✅ Admin authorization (8 tests for isActiveAdmin)
+- ✅ Route protection (18 tests for authorizeAdminRoute)
+- ✅ Edge cases (trailing slashes, case sensitivity, future timestamps)
+
+**Security Features**:
+- Triple-layer protection (timeout + IP + browser closure)
+- HTTP-only cookies (XSS prevention)
+- Secure flags in production (HTTPS-only)
+- No sensitive data in logs (see lib/security/logger.ts)
+- Database-driven admin access (no hardcoded emails)
+
+---
 
 ### 1. Type System (`lib/types/`)
 

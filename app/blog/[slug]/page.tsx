@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient, createStaticClient } from '@/lib/supabase/server';
 import CommentSection from '@/components/blog/CommentSection';
+import ShareButtons from '@/components/blog/ShareButtons';
+import { formatDate } from '@/lib/utils/format';
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -117,11 +119,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <header className="mb-12">
           <div className="mb-4">
             <time className="text-cyber-primary/60 font-mono text-sm">
-              {new Date(post.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatDate(post.created_at, 'long')}
             </time>
             <span className="mx-3 text-cyber-primary/30">•</span>
             <span className="text-foreground/60 text-sm">{post.read_time}</span>
@@ -164,31 +162,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         </div>
 
         {/* Share section */}
-        <div className="border-t border-b border-cyber-primary/20 py-8 mb-12">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-foreground/60">Share this article:</span>
-            <div className="flex gap-4">
-              <button
-                onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(window.location.href)}`, '_blank')}
-                className="px-4 py-2 border border-cyber-primary/30 hover:border-cyber-primary text-cyber-primary hover:bg-cyber-primary hover:text-cyber-dark transition-all duration-300 rounded font-mono text-sm"
-              >
-                Twitter
-              </button>
-              <button
-                onClick={() => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`, '_blank')}
-                className="px-4 py-2 border border-cyber-primary/30 hover:border-cyber-primary text-cyber-primary hover:bg-cyber-primary hover:text-cyber-dark transition-all duration-300 rounded font-mono text-sm"
-              >
-                LinkedIn
-              </button>
-              <button
-                onClick={() => navigator.clipboard.writeText(window.location.href)}
-                className="px-4 py-2 border border-cyber-primary/30 hover:border-cyber-primary text-cyber-primary hover:bg-cyber-primary hover:text-cyber-dark transition-all duration-300 rounded font-mono text-sm"
-              >
-                Copy Link
-              </button>
-            </div>
-          </div>
-        </div>
+        <ShareButtons title={post.title} url={`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/blog/${slug}`} />
 
         {/* Comments section */}
         <CommentSection postSlug={slug} />

@@ -1,8 +1,11 @@
 name: Claude Code Review
 
+# Disabled until CLAUDE_CODE_OAUTH_TOKEN secret is configured
+# See: https://github.com/anthropics/claude-code-action for setup instructions
 on:
-  pull_request:
-    types: [opened, synchronize]
+  workflow_dispatch: # Only run manually
+  # pull_request:
+  #   types: [opened, synchronize]
     # Optional: Only run on specific file changes
     # paths:
     #   - "src/**/*.ts"

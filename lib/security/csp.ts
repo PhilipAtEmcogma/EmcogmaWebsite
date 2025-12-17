@@ -19,13 +19,16 @@ export function generateNonce(): string {
  * @returns CSP header value
  */
 export function getNonceCSP(nonce: string): string {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+  const reportUri = siteUrl ? `${siteUrl}/api/csp-report` : '/api/csp-report';
+
   const policies = [
     // Default source
     "default-src 'self'",
 
     // Scripts: Allow self, nonce, and trusted CDNs
     // Remove 'unsafe-inline' and 'unsafe-eval' for better security
-    `script-src 'self' 'nonce-${nonce}' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com`,
+    `script-src 'self' 'nonce-${nonce}' https://www.google.com https://www.gstatic.com https://www.googletagmanager.com https://vercel.com https://*.vercel.com https://vitals.vercel-analytics.com`,
 
     // Styles: Allow self, nonce, and Google Fonts
     // Remove 'unsafe-inline' for better security
@@ -38,7 +41,7 @@ export function getNonceCSP(nonce: string): string {
     "font-src 'self' data: https://fonts.gstatic.com",
 
     // Connect: Allow self, Supabase, and Formspree
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://formspree.io https://www.google.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://formspree.io https://www.google.com https://vitals.vercel-analytics.com",
 
     // Frame: Allow Google reCAPTCHA
     "frame-src 'self' https://www.google.com",
@@ -57,6 +60,10 @@ export function getNonceCSP(nonce: string): string {
 
     // Upgrade insecure requests
     "upgrade-insecure-requests",
+
+    // CSP Reporting
+    `report-uri ${reportUri}`,
+    `report-to default`,
   ];
 
   return policies.join('; ');

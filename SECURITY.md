@@ -12,7 +12,7 @@ This project implements **OWASP Top 10 2021 compliant (A-Grade)** enterprise sec
 ✅ **Input Validation & Sanitization** - DOMPurify for XSS, SQL injection pattern detection
 ✅ **Security Headers** - CSP, HSTS, X-Frame-Options, X-Content-Type-Options
 ✅ **Automated Dependency Scanning** - Dependabot with weekly scans + auto-merge
-✅ **CI/CD Security Pipeline** - GitHub Actions (secret detection, vulnerability scanning)
+✅ **CI/CD Security Pipeline** - 9-job automated workflow (secret scanning, dependency auditing, security linting, type checking, testing, license compliance, security gate) - See [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)
 ✅ **Privacy Compliance** - GDPR/CCPA with comprehensive privacy policy
 ✅ **Security Logging** - Real-time event tracking by severity
 ✅ **Row-Level Security** - Database-enforced access control with centralized `is_admin()` function
@@ -446,11 +446,27 @@ The middleware generates a unique nonce per request and injects it into the CSP 
 - Grouped updates for production dependencies
 
 **GitHub Actions Security Pipeline:** [.github/workflows/security.yml](.github/workflows/security.yml)
-- Secret detection (TruffleHog)
-- Vulnerability scanning (npm audit)
-- ESLint security checks
-- Security header validation
-- License compliance checks
+
+**Comprehensive 9-job automated security workflow:**
+1. **Secret Detection** - TruffleHog scans for 700+ secret types (verified only)
+2. **Custom Security Verification** - Project-specific checks via verify-security.js
+3. **Dependency Vulnerability Scanning** - npm audit with moderate+ severity threshold
+4. **ESLint Security Linting** - Zero-warning policy with security-focused rules
+5. **Security Headers Validation** - Validates CSP, HSTS, X-Frame-Options, etc.
+6. **Build & Type Checking** - TypeScript compilation and Next.js build verification
+7. **Unit Testing** - Vitest test suite with coverage reports
+8. **License Compliance** - Ensures only approved OSS licenses are used
+9. **Security Gate** - Enforces critical checks, fails pipeline on violations
+
+**Features:**
+- Runs on push, pull requests, weekly schedule, and manual triggers
+- Parallel job execution for maximum performance (3-5 minute total runtime)
+- GitGuardian integration with false-positive prevention (.gitguardian.yml)
+- GitHub Secrets for test keys (Google's official reCAPTCHA test keys)
+- Detailed security summary with actionable error messages
+- Zero hardcoded secrets in workflow files
+
+📖 **Complete Documentation:** [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md)
 
 ### Privacy Compliance
 
@@ -487,6 +503,8 @@ Before deploying to production, ensure all security measures are in place:
 - [ ] Security headers configured
 - [ ] **Dependabot enabled** (.github/dependabot.yml)
 - [ ] **GitHub Actions security pipeline enabled** (.github/workflows/security.yml)
+- [ ] **GitHub Secrets configured** (TEST_RECAPTCHA_SITE_KEY, TEST_RECAPTCHA_SECRET_KEY)
+- [ ] **GitGuardian configuration added** (.gitguardian.yml for false-positive prevention)
 - [ ] **Privacy policy page deployed** (/privacy)
 - [ ] Dependencies audited (`npm audit`)
 - [ ] **Security verification passed** (`npm run verify-security`)
@@ -547,7 +565,7 @@ If you suspect a security breach:
 - [SECURITY-MIGRATION-GUIDE.md](SECURITY-MIGRATION-GUIDE.md) - Production deployment guide
 - [SECURITY-AUDIT-REPORT.md](SECURITY-AUDIT-REPORT.md) - **NEW:** Sensitive data exposure audit (Dec 2025)
 - [ATTACK-SURFACE-CHECKLIST.md](ATTACK-SURFACE-CHECKLIST.md) - Comprehensive threat analysis
-- [SECURITY-SCANNING-PIPELINE.md](SECURITY-SCANNING-PIPELINE.md) - Automated scanning setup
+- [GITHUB-ACTIONS.md](GITHUB-ACTIONS.md) - Complete CI/CD security pipeline documentation
 - [SECURITY-AUDIT-SUMMARY.md](SECURITY-AUDIT-SUMMARY.md) - Audit findings & recommendations
 - [QUICK-START.md](QUICK-START.md) - 10-minute security deployment guide
 - [IMPLEMENTATION-COMPLETE.md](IMPLEMENTATION-COMPLETE.md) - Complete implementation summary

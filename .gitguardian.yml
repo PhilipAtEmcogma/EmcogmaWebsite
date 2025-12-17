@@ -1,0 +1,50 @@
+# GitGuardian configuration
+# https://docs.gitguardian.com/internal-repositories-monitoring/configuration
+
+version: 2
+
+# Paths to exclude from scanning
+paths-ignore:
+  - .env.example              # Template file with placeholder values
+  - .env.local.example        # Template file with placeholder values
+  - .github/workflows/**      # GitHub Actions workflows use secrets properly
+  - node_modules/**           # Third-party dependencies
+  - .next/**                  # Build artifacts
+  - out/**                    # Export output
+  - coverage/**               # Test coverage reports
+  - '**/*.md'                 # Documentation files (includes PRODUCTION-ENV-REVIEW.md)
+  - '**/*.test.ts'            # Test files may contain mock data
+  - '**/*.test.tsx'           # Test files may contain mock data
+  - verify-security.js        # Security script that checks for patterns
+  - PRODUCTION-ENV-REVIEW.md  # Production environment review with redacted placeholders
+
+# Specific secrets to ignore (use with caution!)
+matches-ignore:
+  # Google's official test reCAPTCHA keys (documented and safe for testing)
+  # Source: https://developers.google.com/recaptcha/docs/faq#id-like-to-run-automated-tests-with-recaptcha.-what-should-i-do
+  - name: Google reCAPTCHA test site key
+    match: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
+  - name: Google reCAPTCHA test secret key
+    match: 6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe
+
+  # Placeholder JWT token (not a real secret)
+  - name: Placeholder JWT in workflow
+    match: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+
+  # Example/placeholder values in CI/CD
+  - name: Example Supabase URL
+    match: https://example.supabase.co
+  - name: Example Formspree endpoint
+    match: https://formspree.io/f/test
+  - name: Example KV URL
+    match: https://example.upstash.io
+  - name: Example tokens
+    match: example_token
+  - name: Example read-only token
+    match: example_ro_token
+
+# Minimum occurrence to report (reduce noise)
+minimum-occurrences: 1
+
+# Exit with error code on detection (enforces security gate)
+exit-zero: false

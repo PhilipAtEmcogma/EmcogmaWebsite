@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import {
   performSecurityCheck,
@@ -104,13 +104,52 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { postSlug, author, authorEmail, content } = body;
+    const { postSlug, author, authorEmail, content, recaptchaToken } = body;
 
     // Validate required fields
     if (!postSlug || !author || !content) {
       SecurityLog.invalidInput(context, 'body', 'Missing required fields');
       return createSecureApiResponse(
         { error: 'Missing required fields: postSlug, author, and content are required' },
+        400
+      );
+    }
+
+    if (!recaptchaToken) {
+      SecurityLog.invalidInput(context, 'recaptchaToken', 'Missing reCAPTCHA token');
+      return createSecureApiResponse(
+        { error: 'reCAPTCHA verification required' },
+        400
+      );
+    }
+
+    // Verify reCAPTCHA token with Google
+    const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+
+    if (!secretKey) {
+      console.error('RECAPTCHA_SECRET_KEY is not configured');
+      return createSecureApiResponse(
+        { error: 'Server configuration error' },
+        500
+      );
+    }
+
+    const verifyUrl = `https://www.google.com/recaptcha/api/siteverify`;
+
+    const recaptchaResponse = await fetch(verifyUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${secretKey}&response=${recaptchaToken}`,
+    });
+
+    const recaptchaData = await recaptchaResponse.json();
+
+    if (!recaptchaData.success) {
+      SecurityLog.suspiciousRequest(context, 'reCAPTCHA verification failed');
+      return createSecureApiResponse(
+        { error: 'reCAPTCHA verification failed' },
         400
       );
     }

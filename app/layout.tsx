@@ -3,6 +3,7 @@ import { Rajdhani, Share_Tech_Mono } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { ToastProvider } from '@/components/ui/Toast';
 
 // Cyberpunk 2077 inspired fonts
 const rajdhani = Rajdhani({
@@ -50,14 +51,16 @@ export default function RootLayout({
       <body
         className={`${rajdhani.variable} ${shareTechMono.variable} antialiased min-h-screen flex flex-col font-sans`}
       >
-        <div className="cyber-grid-bg fixed inset-0 opacity-50 pointer-events-none" />
-        <div className="relative z-10 flex flex-col min-h-screen">
-          <Header />
-          <main className="flex-grow">
-            {children}
-          </main>
-          <Footer />
-        </div>
+        <ToastProvider>
+          <div className="cyber-grid-bg fixed inset-0 opacity-50 pointer-events-none" />
+          <div className="relative z-10 flex flex-col min-h-screen">
+            <Header />
+            <main className="flex-grow">
+              {children}
+            </main>
+            <Footer />
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );

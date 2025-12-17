@@ -10,13 +10,8 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') ?? '/admin';
 
   // Secure logging - redacts OAuth code and other sensitive params
-  logSecureUrl('OAuth callback', requestUrl.toString());
-
   if (process.env.NODE_ENV === 'development') {
-    console.log('Code present:', !!code);
-    if (error_description) {
-      console.log('Error description:', error_description);
-    }
+    logSecureUrl('OAuth callback', requestUrl.toString());
   }
 
   // Handle errors from OAuth provider
@@ -62,7 +57,17 @@ export async function GET(request: Request) {
 
     if (!error) {
       // Success - redirect to intended destination
-      return NextResponse.redirect(new URL(next, request.url));
+      const response = NextResponse.redirect(new URL(next, request.url));
+
+      // Set oauth_callback cookie to prevent session timeout on first login
+      response.cookies.set('oauth_callback', 'true', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 60, // 1 minute - just enough for the redirect
+      });
+
+      return response;
     }
 
     // Log the error for debugging (development only to avoid leaking auth details)

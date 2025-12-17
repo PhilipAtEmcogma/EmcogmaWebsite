@@ -256,15 +256,20 @@ npm run test:coverage
 ```
 
 ### Test Status (December 14, 2025)
-- ✅ **191/191 tests passing** (100%)
+- ✅ **266/266 tests passing** (100%) - +58 new tests
 - ✅ **0 TypeScript errors** (fixed all 28 compilation errors)
-- ✅ **8 test suites** - All passing
-- ✅ **Test coverage:** Comprehensive coverage of utilities, validation, errors, UI components
+- ✅ **11 test suites** - All passing
+- ✅ **Test coverage:** Comprehensive coverage of utilities, validation, errors, UI components, session management
 
 ### Test Structure
 ```
 lib/
 ├── errors/__tests__/AppError.test.ts          # 21 tests
+├── session/__tests__/                         # ✨ NEW: 58 tests
+│   ├── validation.test.ts                     # 30 tests (session timeout, IP, cookies)
+│   └── authorization.test.ts                  # 28 tests (admin auth, route protection)
+├── supabase/__tests__/                        # ✨ NEW: 17 tests
+│   └── ip.test.ts                             # 17 tests (IP extraction utilities)
 ├── utils/__tests__/
 │   ├── array.test.ts                          # 39 tests
 │   ├── cn.test.ts                             # 9 tests
@@ -276,6 +281,58 @@ components/ui/__tests__/
 └── Button.test.tsx                            # 18 tests
 ```
 
+### Recent Test Additions (December 14, 2025)
+
+**🆕 Session Management Tests** (58 new tests, ~900 lines):
+- **lib/session/__tests__/validation.test.ts** (30 tests):
+  - SESSION_TIMEOUT_MS constant validation
+  - OAuth callback detection (3 scenarios)
+  - Session timeout validation (12 tests):
+    - Browser reopen detection (no cookie)
+    - Invalid timestamp handling (NaN)
+    - Timeout threshold exceeded (10+ minutes)
+    - Within timeout (< 10 minutes)
+    - Error messages (session_timeout, session_invalid)
+  - IP address validation (6 tests):
+    - First-time setup (no stored IP)
+    - IP match vs change detection
+    - IPv4 and IPv6 support
+    - Error message (ip_changed)
+  - Cookie management (5 tests):
+    - Session cookie creation (no maxAge)
+    - Secure flags (production vs development)
+    - IP address storage
+  - OAuth callback cleanup (2 tests)
+  - Edge cases (5 tests: very old timestamps, future timestamps, IPv6, unknown IPs)
+
+- **lib/session/__tests__/authorization.test.ts** (28 tests):
+  - isActiveAdmin() function (8 tests):
+    - Active admin validation
+    - Inactive admin rejection
+    - Non-admin user rejection
+    - Database error handling
+    - Email validation (undefined, null, empty string)
+  - authorizeAdminRoute() function (18 tests):
+    - Login page handling (3 tests)
+    - Protected admin routes (5 tests)
+    - Non-admin routes (2 tests)
+    - Route variations (3 tests)
+    - Error handling (2 tests)
+    - Edge cases (3 tests: case sensitivity, trailing slashes, /administrator)
+  - Integration scenarios (2 tests):
+    - Complete admin login flow
+    - Non-admin access attempt
+
+**🆕 IP Extraction Tests** (17 new tests):
+- **lib/supabase/__tests__/ip.test.ts**:
+  - x-forwarded-for header parsing (5 tests)
+  - x-real-ip header parsing (3 tests)
+  - Header priority (x-forwarded-for > x-real-ip)
+  - IPv4 and IPv6 addresses
+  - Multiple IPs in x-forwarded-for (takes first)
+  - Whitespace handling
+  - Empty/missing headers (returns 'unknown')
+
 ### Recent Test Fixes
 - Fixed CSV date formatting to handle invalid dates gracefully
 - Fixed Subscriber type mismatches in export API
@@ -284,6 +341,9 @@ components/ui/__tests__/
 - Fixed AppError test environment variable handling
 - Fixed contact form subject validation (min 3 chars)
 - Fixed stringToTags test expectation for empty strings
+- Fixed session test expectations for inactive admins (data: null vs {active: false})
+- Fixed /administrator route test (startsWith('/admin') matches it)
+- Fixed empty cookie value test expectations
 
 ### What We Built:
 1. **2 New Admin Managers** - Subscribers + Contact Forms

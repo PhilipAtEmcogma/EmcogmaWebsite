@@ -199,23 +199,41 @@ export function useCrud<T extends CrudEntity>(
   const deleteItem = useCallback(
     async (id: string): Promise<CrudResult<void>> => {
       try {
-        const { error: deleteError } = await supabase
+        console.log(`[DELETE] Attempting to delete ${config.displayName} with id:`, id);
+
+        const { error: deleteError, data } = await supabase
           .from(config.tableName)
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .select();
 
-        if (deleteError) throw deleteError;
+        console.log(`[DELETE] Response:`, { error: deleteError, data });
 
-        // Refresh list
+        if (deleteError) {
+          console.error(`[DELETE] Error from Supabase:`, deleteError);
+          throw deleteError;
+        }
+
+        console.log(`[DELETE] Success! Updating UI state...`);
+
+        // Immediately remove from local state for instant UI update
+        setItems((prevItems) => {
+          const filtered = prevItems.filter((item) => item.id !== id);
+          console.log(`[DELETE] Items before:`, prevItems.length, `after:`, filtered.length);
+          return filtered;
+        });
+
+        // Also refresh from database to ensure consistency
+        console.log(`[DELETE] Fetching items to refresh list...`);
         await fetchItems();
 
         return { success: true };
       } catch (err: any) {
         // Only log error details in development to avoid exposing sensitive data
         if (process.env.NODE_ENV === 'development') {
-          console.error(`Error deleting ${config.displayName}:`, err);
+          console.error(`[DELETE] Error deleting ${config.displayName}:`, err);
         } else {
-          console.error(`Error deleting ${config.displayName}:`, err.message || 'Unknown error');
+          console.error(`[DELETE] Error deleting ${config.displayName}:`, err.message || 'Unknown error');
         }
         return {
           success: false,

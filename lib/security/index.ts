@@ -76,6 +76,47 @@ export {
   type SecurityEvent,
 } from './logger';
 
+// Edge Runtime rate limiting
+export {
+  type EdgeRateLimitConfig,
+  checkEdgeRateLimit,
+  getEdgeRateLimitConfig,
+  EDGE_RATE_LIMITS,
+} from './edgeRateLimit';
+
+// Security monitoring and alerting
+export {
+  type SecurityEventSeverity,
+  type SecurityEventContext,
+  type SecurityEvent as MonitoringSecurityEvent,
+  type SecurityMonitoringService,
+  securityMonitor,
+  SecurityEvents,
+} from './monitoring';
+
+// Account brute force protection
+export {
+  type LoginAttemptResult,
+  type AccountLockoutConfig,
+  checkLoginAttempts,
+  recordFailedAttempt,
+  recordSuccessfulLogin,
+  unlockAccount,
+  getAccountStatus,
+} from './loginSecurity';
+
+// Graduated abuse response
+export {
+  type AbuseAction,
+  type AbuseMitigation,
+  type AbuseContext,
+  isBlocked,
+  getAbuseResponse,
+  createAbuseResponse,
+  clearViolations,
+  getAbuseStats,
+} from './abuseResponse';
+
 /**
  * Complete security check for API routes
  * Combines rate limiting, CSRF, and input validation

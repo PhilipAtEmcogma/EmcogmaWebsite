@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createStaticClient } from '@/lib/supabase/server';
 import type { BlogPost } from '@/lib/types';
+import { formatDate } from '@/lib/utils/format';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -61,11 +62,7 @@ export default async function RecentPosts() {
             <article className="card-cyber h-full flex flex-col">
               <div className="mb-4">
                 <time className="text-cyber-primary/60 text-sm font-mono">
-                  {new Date(post.created_at).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {formatDate(post.created_at, 'short')}
                 </time>
               </div>
 

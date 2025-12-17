@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['@supabase/supabase-js'],
   },
+  // Turbopack configuration (Next.js 16 default)
+  // Empty config to acknowledge webpack config migration
+  turbopack: {},
   // Security headers (backup - primary headers in middleware)
   async headers() {
     return [
@@ -55,6 +58,18 @@ const nextConfig: NextConfig = {
         ],
       },
     ];
+  },
+  // Webpack configuration for Edge Runtime compatibility
+  webpack: (config, { isServer }) => {
+    // Edge Runtime doesn't support Node.js crypto module
+    // Use Web Crypto API instead (already implemented in lib/security/csp.ts)
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+      };
+    }
+    return config;
   },
 };
 
